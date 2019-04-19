@@ -16,20 +16,19 @@ LOG_DIR = os.getcwd() + "/logs/wordEmbeddings/"
 NUM_SAMPLES = [1000, 2500]
 
 # 1) Load the Data
-LOADER = ASTLoader(TRAIN_DIR, NUM_SAMPLES)
-LOADER.load_types()
+LOADER = ASTLoader(TRAIN_DIR)
 
 
 # 2) Convert words into indices and build dataset.
-data, index2_word_dict = LOADER.build_dataset()
+index2_word_dict = LOADER.index_2_word_map
 vocabulary_size = len(index2_word_dict)
 
 
 # 3) Build the model
 # Define CONSTANTS
-batch_size = 128
-embedding_size = 300
-skip_window = 1
+batch_size = 32
+embedding_size = 400
+skip_window = 2
 num_skips = 2
 negative_sampled = 16
 
@@ -87,7 +86,7 @@ with tf.Session() as sess:
     projector.visualize_embeddings(train_writer, config)
 
     sess.run(tf.global_variables_initializer())
-    for step in range(1001):
+    for step in range(20000):
         x_batch, y_batch = LOADER.generate_batch(batch_size,
                                                  skip_window, num_skips)
         summary, _ = sess.run([merged, train_step],
@@ -95,8 +94,9 @@ with tf.Session() as sess:
                                          train_labels: y_batch})
         train_writer.add_summary(summary, step)
 
-        if step % 100 == 0:
+        if step % 1000 == 0:
             saver.save(sess, os.path.join(LOG_DIR, "w2v_model.ckpt"), step)
             loss_value = sess.run(nce_loss, feed_dict={train_inputs: x_batch,
                                                        train_labels: y_batch})
             print("Loss at %d: %.5f" % (step, loss_value))
+
