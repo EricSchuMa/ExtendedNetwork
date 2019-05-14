@@ -1,6 +1,6 @@
 import os
 import tarfile
-import urllib
+import urllib.request
 
 """Download 150k Python Dataset from SRILAB"""
 
@@ -17,7 +17,7 @@ else:
 
 print("Downloading Python 150k AST-dataset from: " + url)
 
-file_tmp = urllib.urlretrieve(url, filename=None)[0]
+file_tmp = urllib.request.urlretrieve(url, filename=None)[0]
 base_name = DATA_DIR 
 
 file_name, file_extension = os.path.splitext(base_name)
