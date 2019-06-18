@@ -8,6 +8,7 @@ cc_library(
     deps = [
         "//base",
         "//phog/dsl",
+        "//phog/model",
         "//phog/tree",
     ],
 )
