@@ -1,4 +1,12 @@
 data
 .idea
+ModelsPHOG/.idea
 __pycache__
 logs
+ModelsPHOG/bazel-bin
+ModelsPHOG/bazel-genfiles
+ModelsPHOG/bazel-out
+ModelsPHOG/bazel-phog
+ModelsPHOG/bazel-testlogs
+ModelsPHOG/bazel-models_phog
+ModelsPHOG/bazel-ModelsPHOG
