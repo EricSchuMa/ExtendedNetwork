@@ -183,6 +183,11 @@ public:
       const TreeSlice* slice,
       bool use_teq = true) const;
 
+  std::vector<std::pair<double, int const*>> GetLabelDistribution(
+          int program_id,
+          const TCondLanguage::ExecutionForTree& exec,
+          FullTreeTraversal sample, const TreeSlice* slice) const ;
+
   bool is_for_node_type() const { return is_for_node_type_; }
 
   int start_program_id() const { return program_.size() - 1; }

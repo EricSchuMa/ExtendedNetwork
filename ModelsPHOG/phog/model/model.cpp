@@ -164,10 +164,10 @@ int TGenModel::GetLabelAtPosition(
       ++op_count;
       return true;
     });
-  }
+  }/*
   if (is_for_node_type_) {
     label = EncodeTypeLabel(TreeSubstitutionOnlyLabel({label, node.first_child != -1, node.right_sib != -1}));
-  }
+  }*/
   return label;
 }
 
@@ -306,6 +306,31 @@ std::pair<double, int> TGenModel::GetBestLabelLogProb(
   return std::make_pair(best_score, best_label);
 }
 
+std::vector<std::pair<double, int const*>> TGenModel::GetLabelDistribution(
+        int program_id,
+        const TCondLanguage::ExecutionForTree& exec, FullTreeTraversal sample, const TreeSlice* slice)
+const {
+    size_t call_length = 0;
+    while (program_.program_type(program_id) == TGenProgram::ProgramType::BRANCHED_PROGRAM) {
+        program_id = GetSubmodelBranch(program_id, exec, sample, slice);
+        ++call_length;
+        CHECK_LE(call_length, program_.size());
+    }
+
+    // vector which stores the probabilities and labels
+    std::vector<std::pair<double, int const*>> label_prob_dist;
+
+    Feature f;
+    const auto& uncond_items = counts_[program_id].LabelsSortedByProbability(f);
+    if (uncond_items.empty()) {
+         //return label_prob_dist;
+    }
+
+    for (size_t i = 0; i<uncond_items.size() && i<3; ++i){
+        label_prob_dist.emplace_back(uncond_items[i]);
+    }
+    return label_prob_dist;
+}
 
 bool TGenModel::IsLabelBestPrediction(
     int program_id,
