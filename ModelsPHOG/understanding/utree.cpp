@@ -49,14 +49,26 @@ int main(int argc, char** argv) {
     model.GenerativeEndTraining();
     LOG(INFO) << "Training done.";
 
-//std::vector<std::string> predictions;
+
+    TreeNode node;
     for (size_t tree_id = 0; tree_id < eval_trees.size(); ++tree_id) {
         const TreeStorage& tree = eval_trees[tree_id];
         TCondLanguage::ExecutionForTree exec(&ss, &tree);
         for (unsigned node_id = 0; node_id < tree.NumAllocatedNodes(); ++node_id) {
             FullTreeTraversal sample(exec.tree(), node_id);
             TreeSlice slice(exec.tree(), node_id, !model.is_for_node_type());
-            std::cout << ss.getString(model.GetLabelAtPosition(model.start_program_id(), exec, sample, &slice));
+            std::vector<std::pair<double, int const*>> output = model.GetLabelDistribution(model.start_program_id(), exec, sample, &slice);
+
+            //for (size_t i = 0; i<output.size(); ++i) {
+               // std::cout <<output[i].first <<  "           "<<*output[i].second << std::endl;
+            //}
+            std::cout << "Probability: " << output[0].first << " Prediction: " << ss.getString(*output[0].second) << " Truth: " << ss.getString(tree.node(node_id).Type()) << std::endl;
+
+            //std::cout << tree.node(node_id).Type() << std::endl;
+
+            //std::cout << tree.node(node_id).Type() << " --- " <<  model.GetLabelAtPosition(model.start_program_id(),
+              //                                                                 exec, sample, &slice, false) << std::endl;
+
         }
     }
 
