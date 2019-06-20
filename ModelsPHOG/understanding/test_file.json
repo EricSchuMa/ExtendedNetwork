@@ -1,1 +1,0 @@
-[{"type":"Module","children":[1]},{"type":"If","children":[2,5]},{"type":"CompareEq","children":[3,4]},{"type":"NameLoad","value":"__name__"},{"type":"Str","value":"__main__"},{"type":"body","children":[6]},{"type":"Pass"}]
