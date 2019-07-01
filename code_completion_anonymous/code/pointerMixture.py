@@ -6,127 +6,16 @@ from __future__ import division
 from __future__ import print_function
 
 import inspect
-import time
 from tqdm import tqdm
 
 import numpy as np
 import tensorflow as tf
 
 import reader_pointer_original as reader
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
-tf.logging.set_verbosity(tf.logging.FATAL)
-
-os.environ['CUDA_VISIBLE_DEVICES']='0'
-outfile = 'output_pointer.txt'
-
-N_filename = '../pickle_data/PY_non_terminal.pickle'
-T_filename = '../pickle_data/PY_terminal_1k_whole.pickle'
-
-flags = tf.flags
-flags.DEFINE_string("save_path", './logs/modelPMN',
-                    "Model output directory.")
-
-flags.DEFINE_string(
-    "model", "test",
-    "A type of model. Possible options are: small, medium, best.")
-
-
-flags.DEFINE_bool("use_fp16", False,
-                  "Train using 16-bit floats instead of 32bit floats")
-FLAGS = flags.FLAGS
-logging = tf.logging
-
-if FLAGS.model == "test":
-    outfile = 'TESToutput.txt'
-
-
-def data_type():
-    return tf.float16 if FLAGS.use_fp16 else tf.float32
-
-
-class SmallConfig(object):
-    """Small config.  get best result as 0.733 """
-    init_scale = 0.05
-    learning_rate = 0.001
-    max_grad_norm = 5
-    num_layers = 1#1
-    num_steps = 50
-    attn_size = 50
-    hidden_sizeN = 300
-    hidden_sizeT = 500
-    sizeH = 800
-    max_epoch = 1#8
-    max_max_epoch = 8#79
-    keep_prob = 1.0#1.0
-    lr_decay = 0.6#0.95
-    batch_size = 64#80
-
-
-class TestConfig(object):
-    """Tiny config, for testing."""
-    init_scale = 0.05
-    learning_rate = 0.001
-    max_grad_norm = 5
-    num_layers = 1
-    num_steps = 50
-    attn_size = 50
-    hidden_sizeN = 300
-    hidden_sizeT = 500
-    sizeH = 800
-    max_epoch = 1
-    max_max_epoch = 2
-    keep_prob = 1.0
-    lr_decay = 0.6
-    batch_size = 1
-
-
-class BestConfig(object):
-    """Best Config according to the paper."""
-    init_scale = 0.05
-    learning_rate = 0.001
-    max_grad_norm = 5
-    num_layers = 1
-    num_steps = 50
-    attn_size = 50
-    hidden_sizeN = 300
-    hidden_sizeT = 1200
-    sizeH = 1500
-    max_epoch = 1
-    max_max_epoch = 8
-    keep_prob = 1.0
-    lr_decay = 0.6
-    batch_size = 128
-
-
-# This helper function taken from official TensorFlow documentation,
-# simply add some ops that take care of logging summaries
-def variable_summaries(var):
-    with tf.name_scope('summaries'):
-        mean = tf.reduce_mean(var)
-        tf.summary.scalar('mean', mean)
-        with tf.name_scope('stddev'):
-            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-        tf.summary.scalar('stddev', stddev)
-        tf.summary.scalar('max', tf.reduce_max(var))
-        tf.summary.scalar('min', tf.reduce_min(var))
-        tf.summary.histogram('histogram', var)
-
-
-def get_config():
-    if FLAGS.model == "small":
-        return SmallConfig()
-    elif FLAGS.model == "test":
-        return TestConfig()
-    elif FLAGS.model == "best":
-        return BestConfig()
-    else:
-        raise ValueError("Invalid model: %s", FLAGS.model)
-
 
 class PMNInput(object):
   """The input data."""
-  def __init__(self, config, data, name=None):
+  def __init__(self, config, data, name=None, FLAGS=None):
     self.batch_size = batch_size = config.batch_size
     self.attn_size = attn_size = config.attn_size
     self.num_steps = num_steps = config.num_steps
@@ -142,7 +31,7 @@ class PMN(object):
     work together to predict next word in an AST
     """
 
-    def __init__(self, is_training, config, input_):
+    def __init__(self, is_training, config, input_, FLAGS):
         self._input = input_
         self.attn_size = attn_size = config.attn_size # attention size
         batch_size = input_.batch_size
@@ -151,6 +40,9 @@ class PMN(object):
         self.sizeT = sizeT = config.hidden_sizeT # embedding size of value(T)
         self.size = size = config.sizeH # hidden size of the lstm cell
         (vocab_sizeN, vocab_sizeT) = config.vocab_size # vocabulary size for type and value
+
+        def data_type():
+            return tf.float16 if FLAGS.use_fp16 else tf.float32
 
         # lstm cell with dropout and multi-layers
         def lstm_cell():
@@ -330,141 +222,6 @@ class PMN(object):
     def train_op(self):
         return self._train_op
 
-def run_epoch(session, model, writer, eval_op=None, verbose=False):
-    """Runs the model on the given data."""
-    start_time = time.time()
-    costs = 0.0
-    accuracy_list = []
-    iters = 0
-    summary = None
-    state = session.run(model.initial_state)
-    eof_indicator = np.ones(model.input.batch_size, dtype=bool)
-    memory = np.zeros([model.input.batch_size, model.input.num_steps, model.size])
-
-    fetches = {
-        "cost": model.cost,
-        "accuracy": model.accuracy,
-        "final_state": model.final_state,
-        "eof_indicator": model.eof_indicator,
-        "memory": model.output,
-        "summary": model.summary
-    }
-    if eval_op is not None:
-        fetches["eval_op"] = eval_op
-
-    for step in tqdm(range(model.input.epoch_size)):
-        feed_dict = {}
-        sub_cond = np.expand_dims(eof_indicator, axis = 1)
-        condition = np.repeat(sub_cond, model.size, axis = 1)
-        zero_state = session.run(model.initial_state)
-
-        for i, (c, h) in enumerate(model.initial_state):
-            assert condition.shape == state[i].c.shape
-            feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
-            feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
-
-        feed_dict[model.memory] = memory
-        vals = session.run(fetches, feed_dict)
-
-        cost = vals["cost"]
-        accuracy = vals["accuracy"]
-        eof_indicator = vals["eof_indicator"]
-        state = vals["final_state"]  #use the final state as the initial state within a whole epoch
-        memory = vals["memory"]
-        summary = vals["summary"]
-
-        #writer.add_summary(summary)
-
-        accuracy_list.append(accuracy)
-        costs += cost
-        iters += model.input.num_steps
-
-
-        if verbose and step % (model.input.epoch_size // 10) == 10:
-            tqdm.write("%.3f perplexity: %.3f accuracy: %.4f speed: %.0f wps" %
-                       (step * 1.0 / model.input.epoch_size, np.exp(costs / iters), np.mean(accuracy_list),
-                        (time.time() - start_time)))
-
-    print ('this run_epoch takes time %.2f' %(time.time() - start_time))
-    return np.exp(costs / iters), np.mean(accuracy_list)
-
-
-def main(_):
-    start_time = time.time()
-    fout = open(outfile, 'a')
-    print ('\n', time.asctime(time.localtime()), file=fout)
-    print ('start a new experiment %s'%outfile, file=fout)
-    print ('Using dataset %s and %s'%(N_filename, T_filename), file=fout)
-    print ('condition on two, two layers', file=fout)
-
-    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = reader.input_data(N_filename, T_filename)
-
-    train_data = (train_dataN, train_dataT)
-    valid_data = (valid_dataN, valid_dataT)
-    vocab_size = (vocab_sizeN+1, vocab_sizeT+2) # N is [w, eof], T is [w, unk, eof]
-
-    config = get_config()
-    assert attn_size == config.attn_size #make sure the attn_size used in generate terminal is the same as the configuration
-    config.vocab_size = vocab_size
-    eval_config = get_config()
-    eval_config.batch_size = config.batch_size * config.num_steps
-    eval_config.num_steps = 1
-    eval_config.vocab_size = vocab_size
-
-    with tf.Graph().as_default():
-        initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
-
-        with tf.name_scope("Train"):
-            train_input = PMNInput(config=config, data=train_data, name="TrainInput")
-            with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                m = PMN(is_training=True, config=config, input_=train_input)
-
-        with tf.name_scope("Valid"):
-            valid_input = PMNInput(config=config, data=valid_data, name="ValidInput")
-            with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mvalid = PMN(is_training=False, config=config, input_=valid_input)
-
-        print ('total trainable variables', len(tf.trainable_variables()), '\n\n')
-        max_valid = 0
-        max_step = 0
-        saver = tf.train.Saver()
-
-        sv = tf.train.Supervisor(logdir=None, summary_op=None)
-        with sv.managed_session() as session:
-            train_writer = tf.summary.FileWriter('./logs', graph=tf.get_default_graph())
-
-            for i in tqdm(range(config.max_max_epoch)):
-                lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
-                m.assign_lr(session, config.learning_rate * lr_decay)
-                tqdm.write("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
-
-                train_perplexity, train_accuracy = run_epoch(session, m, train_writer, eval_op=m.train_op, verbose=True)
-                print('saving summaries')
-
-                tqdm.write("Epoch: %d Train Perplexity: %.3f Train Accuracy: %.3f" % (i + 1, train_perplexity, train_accuracy))
-                print("Epoch: %d Train Perplexity: %.3f Train Accuracy: %.3f" % (i + 1, train_perplexity, train_accuracy), file=fout)
-
-                if i > 5:
-                    valid_perplexity, valid_accuracy = run_epoch(session, mvalid)
-                    tqdm.write("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (i + 1, valid_perplexity, valid_accuracy))
-                    print("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (i + 1, valid_perplexity, valid_accuracy), file=fout)
-                    if valid_accuracy > max_valid:
-                        max_valid = valid_accuracy
-                        max_step = i + 1
-
-                if FLAGS.save_path:
-                    tqdm.write("Saving model to %s." % FLAGS.save_path)
-                    saver.save(session, FLAGS.save_path , global_step=i)
-
-            # test_perplexity, test_accuracy = run_epoch(session, mtest)
-            # print("\nTest Perplexity: %.3f Test Accuracy: %.3f" % (test_perplexity, test_accuracy))
-
-            tqdm.write('max step %d, max valid %.3f' % (max_step, max_valid))
-            tqdm.write('total time takes %.4f' % (time.time()-start_time))
-            print('max step %d, max valid %.3f' % (max_step, max_valid), file=fout)
-            print('total time takes %.3f' % (time.time()-start_time), file=fout)
-            fout.close()
-
 
 if __name__ == '__main__':
     train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = \
@@ -486,10 +243,7 @@ if __name__ == '__main__':
         memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
         sv = tf.train.Supervisor(logdir=None, summary_op=None)
 
-        saver = tf.train.Saver()
-
         with sv.managed_session() as session:
-            saver.restore("./logs/modelPMN-5")
             valid_perplexity, valid_accuracy = run_epoch(session, m , writer=None)
             tqdm.write(
                 "Epoch:  Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (valid_perplexity, valid_accuracy))
@@ -529,4 +283,4 @@ if __name__ == '__main__':
                 state = vals["final_state"]  # use the final state as the initial state within a whole epoch
                 memory = vals["memory"]
                 summary = vals["summary"]
-                #print(np.shape(memory))
+                print(np.shape(memory))
