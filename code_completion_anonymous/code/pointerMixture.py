@@ -467,4 +467,60 @@ def main(_):
 
 
 if __name__ == '__main__':
-    tf.app.run()
+    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = \
+        reader.input_data(N_filename, T_filename)
+    valid_data = (valid_dataN, valid_dataT)
+    config = get_config()
+    vocab_size = (vocab_sizeN + 1, vocab_sizeT + 2)
+    config.vocab_size = vocab_size
+    valid_input = PMNInput(config=config, data=valid_data, name="validInput")
+
+    initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
+
+    with tf.name_scope("Train"):
+        with tf.variable_scope("Model", reuse=tf.AUTO_REUSE, initializer=initializer):
+            m = PMN(is_training=True, config=config, input_=valid_input)
+
+    memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
+
+    with tf.Session() as session:
+
+        saver = tf.train.import_meta_graph("./modelPMN-5.meta")
+        saver.restore(session, "./modelPMN-5")
+
+        session.run(tf.initialize_all_variables())
+
+        state = session.run(m.initial_state)
+        eof_indicator = np.ones(m.input.batch_size, dtype=bool)
+        memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
+
+        fetches = {
+            "cost": m.cost,
+            "accuracy": m.accuracy,
+            "final_state": m.final_state,
+            "eof_indicator": m.eof_indicator,
+            "memory": m.output,
+            "summary": m.summary
+        }
+
+        for step in tqdm(range(m.input.epoch_size)):
+            feed_dict = {}
+            sub_cond = np.expand_dims(eof_indicator, axis=1)
+            condition = np.repeat(sub_cond, m.size, axis=1)
+            zero_state = session.run(m.initial_state)
+
+            for i, (c, h) in enumerate(m.initial_state):
+                assert condition.shape == state[i].c.shape
+                feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
+                feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
+
+            feed_dict[m.memory] = memory
+            vals = session.run(fetches, feed_dict)
+
+            cost = vals["cost"]
+            accuracy = vals["accuracy"]
+            eof_indicator = vals["eof_indicator"]
+            state = vals["final_state"]  # use the final state as the initial state within a whole epoch
+            memory = vals["memory"]
+            summary = vals["summary"]
+            print(memory)
