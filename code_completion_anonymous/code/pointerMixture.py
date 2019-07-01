@@ -485,11 +485,11 @@ if __name__ == '__main__':
 
     with tf.Session() as session:
 
-        saver = tf.train.import_meta_graph("./logs/modelPMN-5.meta")
-        saver.restore(session, "./logs/modelPMN-5")
-        print("Model restored from checkpoint")
+    
 
-        session.run(tf.initialize_all_variables())
+        valid_perplexity, valid_accuracy = run_epoch(session, m)
+        tqdm.write(
+            "Epoch:  Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (valid_perplexity, valid_accuracy))
 
         print("Variables initialized")
         state = session.run(m.initial_state)
@@ -506,7 +506,7 @@ if __name__ == '__main__':
             "summary": m.summary
         }
 
-        for step in tqdm(range(m.input.epoch_size)):
+        for step in tqdm(range(1)):
             feed_dict = {}
             sub_cond = np.expand_dims(eof_indicator, axis=1)
             condition = np.repeat(sub_cond, m.size, axis=1)
