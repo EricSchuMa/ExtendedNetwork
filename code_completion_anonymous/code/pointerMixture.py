@@ -373,7 +373,7 @@ def run_epoch(session, model, writer, eval_op=None, verbose=False):
         memory = vals["memory"]
         summary = vals["summary"]
 
-        writer.add_summary(summary)
+        #writer.add_summary(summary)
 
         accuracy_list.append(accuracy)
         costs += cost
@@ -485,9 +485,9 @@ if __name__ == '__main__':
 
     with tf.Session() as session:
 
-    
 
-        valid_perplexity, valid_accuracy = run_epoch(session, m)
+
+        valid_perplexity, valid_accuracy = run_epoch(session, m , writer=None)
         tqdm.write(
             "Epoch:  Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (valid_perplexity, valid_accuracy))
 
