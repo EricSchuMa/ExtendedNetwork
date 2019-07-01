@@ -78,7 +78,7 @@ class TestConfig(object):
     max_max_epoch = 2
     keep_prob = 1.0
     lr_decay = 0.6
-    batch_size = 80
+    batch_size = 1
 
 
 class BestConfig(object):
@@ -487,13 +487,16 @@ if __name__ == '__main__':
 
         saver = tf.train.import_meta_graph("./logs/modelPMN-5.meta")
         saver.restore(session, "./logs/modelPMN-5")
+        print("Model restored from checkpoint")
 
         session.run(tf.initialize_all_variables())
 
+        print("Variables initialized")
         state = session.run(m.initial_state)
+        print("Initial state is set")
         eof_indicator = np.ones(m.input.batch_size, dtype=bool)
         memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
-
+        print("memory initialized")
         fetches = {
             "cost": m.cost,
             "accuracy": m.accuracy,
