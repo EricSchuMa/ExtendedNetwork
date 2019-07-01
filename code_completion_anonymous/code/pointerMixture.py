@@ -485,8 +485,8 @@ if __name__ == '__main__':
 
     with tf.Session() as session:
 
-        saver = tf.train.import_meta_graph("./modelPMN-5.meta")
-        saver.restore(session, "./modelPMN-5")
+        saver = tf.train.import_meta_graph("./logs/modelPMN-5.meta")
+        saver.restore(session, "./logs/modelPMN-5")
 
         session.run(tf.initialize_all_variables())
 
