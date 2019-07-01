@@ -1,5 +1,8 @@
 data
 .idea
+code_completion_anonymous/code/.idea
+code_completion_anonymous/code/__pycache__
+code_completion_anonymous/pickle_data
 ModelsPHOG/.idea
 __pycache__
 logs
