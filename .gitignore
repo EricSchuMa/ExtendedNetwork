@@ -1,5 +1,5 @@
 data
-*.idea
+*idea
 *__pycache__
 *pickle_data
 ModelsPHOG/.idea
