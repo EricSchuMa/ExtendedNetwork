@@ -473,57 +473,60 @@ if __name__ == '__main__':
     config = get_config()
     vocab_size = (vocab_sizeN + 1, vocab_sizeT + 2)
     config.vocab_size = vocab_size
-    valid_input = PMNInput(config=config, data=valid_data, name="validInput")
 
-    initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
+    with tf.Graph().as_default():
+        valid_input = PMNInput(config=config, data=valid_data, name="validInput")
 
-    with tf.name_scope("Train"):
-        with tf.variable_scope("Model", reuse=tf.AUTO_REUSE, initializer=initializer):
-            m = PMN(is_training=True, config=config, input_=valid_input)
+        initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
 
-    memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
+        with tf.name_scope("Train"):
+            with tf.variable_scope("Model", reuse=tf.AUTO_REUSE, initializer=initializer):
+                m = PMN(is_training=True, config=config, input_=valid_input)
 
-    with tf.Session() as session:
-
-
-
-        valid_perplexity, valid_accuracy = run_epoch(session, m , writer=None)
-        tqdm.write(
-            "Epoch:  Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (valid_perplexity, valid_accuracy))
-
-        print("Variables initialized")
-        state = session.run(m.initial_state)
-        print("Initial state is set")
-        eof_indicator = np.ones(m.input.batch_size, dtype=bool)
         memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
-        print("memory initialized")
-        fetches = {
-            "cost": m.cost,
-            "accuracy": m.accuracy,
-            "final_state": m.final_state,
-            "eof_indicator": m.eof_indicator,
-            "memory": m.output,
-            "summary": m.summary
-        }
+        sv = tf.train.Supervisor(logdir=None, summary_op=None)
 
-        for step in tqdm(range(1)):
-            feed_dict = {}
-            sub_cond = np.expand_dims(eof_indicator, axis=1)
-            condition = np.repeat(sub_cond, m.size, axis=1)
-            zero_state = session.run(m.initial_state)
+        saver = tf.train.Saver()
 
-            for i, (c, h) in enumerate(m.initial_state):
-                assert condition.shape == state[i].c.shape
-                feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
-                feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
+        with sv.managed_session() as session:
+            saver.restore("./logs/modelPMN-5")
+            valid_perplexity, valid_accuracy = run_epoch(session, m , writer=None)
+            tqdm.write(
+                "Epoch:  Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (valid_perplexity, valid_accuracy))
 
-            feed_dict[m.memory] = memory
-            vals = session.run(fetches, feed_dict)
+            print("Variables initialized")
+            state = session.run(m.initial_state)
+            print("Initial state is set")
+            eof_indicator = np.ones(m.input.batch_size, dtype=bool)
+            memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
+            print("memory initialized")
+            fetches = {
+                "cost": m.cost,
+                "accuracy": m.accuracy,
+                "final_state": m.final_state,
+                "eof_indicator": m.eof_indicator,
+                "memory": m.output,
+                "summary": m.summary
+            }
 
-            cost = vals["cost"]
-            accuracy = vals["accuracy"]
-            eof_indicator = vals["eof_indicator"]
-            state = vals["final_state"]  # use the final state as the initial state within a whole epoch
-            memory = vals["memory"]
-            summary = vals["summary"]
-            print(memory)
+            for step in tqdm(range(1)):
+                feed_dict = {}
+                sub_cond = np.expand_dims(eof_indicator, axis=1)
+                condition = np.repeat(sub_cond, m.size, axis=1)
+                zero_state = session.run(m.initial_state)
+
+                for i, (c, h) in enumerate(m.initial_state):
+                    assert condition.shape == state[i].c.shape
+                    feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
+                    feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
+
+                feed_dict[m.memory] = memory
+                vals = session.run(fetches, feed_dict)
+
+                cost = vals["cost"]
+                accuracy = vals["accuracy"]
+                eof_indicator = vals["eof_indicator"]
+                state = vals["final_state"]  # use the final state as the initial state within a whole epoch
+                memory = vals["memory"]
+                summary = vals["summary"]
+                #print(np.shape(memory))
