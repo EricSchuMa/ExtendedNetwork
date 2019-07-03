@@ -220,8 +220,9 @@ if __name__ == '__main__':
         max_step = 0
         saver = tf.train.Saver()
 
-        sv = tf.train.Supervisor(logdir=None, summary_op=None)
-        with sv.managed_session() as session:
+        #sv = tf.train.Supervisor(logdir=None, summary_op=None)
+        with tf.Session() as session:
+            saver.restore(session, './logs/modelPMN-0')
             train_writer = tf.summary.FileWriter('./logs', graph=tf.get_default_graph())
 
             for i in tqdm(range(config.max_max_epoch)):
