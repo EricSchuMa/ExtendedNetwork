@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import print_function
 
 import inspect
-import time
 from tqdm import tqdm
 
 import numpy as np

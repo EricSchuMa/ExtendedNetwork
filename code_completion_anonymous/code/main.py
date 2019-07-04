@@ -12,8 +12,12 @@ import numpy as np
 import reader_pointer_original as reader
 
 from tqdm import tqdm
+<<<<<<< HEAD
 from pointerMixture import PMN, PMNInput, run_epoch
 from config import SmallConfig, TestConfig, BestConfig
+=======
+from pointerMixture import *
+>>>>>>> f6713136d82aefd4f9b20b516d10d529579755c9
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 tf.logging.set_verbosity(tf.logging.FATAL)
