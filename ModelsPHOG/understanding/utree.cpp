@@ -12,7 +12,7 @@
 DEFINE_string(training_data, "", "A file with the tree information.");
 DEFINE_string(evaluation_data, "", "A file with the training data.");
 DEFINE_string(tgen_program, "", "A file with a TGen program.");
-DEFINE_bool(is_for_node_type, true, "Whether the predictions are for node type (if false it is for node value).");
+DEFINE_bool(is_for_node_type, false, "Whether the predictions are for node type (if false it is for node value).");
 DEFINE_int32(num_training_asts, 100000, "Maximun number of training ASTs to load.");
 DEFINE_int32(num_eval_asts, 50000, "Maximun number of evaluation ASTs to load.");
 
@@ -57,13 +57,16 @@ int main(int argc, char** argv) {
         for (unsigned node_id = 0; node_id < tree.NumAllocatedNodes(); ++node_id) {
             FullTreeTraversal sample(exec.tree(), node_id);
             TreeSlice slice(exec.tree(), node_id, !model.is_for_node_type());
-            std::vector<std::pair<double, int const*>> output = model.GetLabelDistribution(model.start_program_id(), exec, sample, &slice);
+            std::vector<std::pair<double, int const*>> output = model.GetLabelDistribution(model.start_program_id(),
+                    exec, sample, &slice);
 
             //for (size_t i = 0; i<output.size(); ++i) {
                // std::cout <<output[i].first <<  "           "<<*output[i].second << std::endl;
             //}
-            std::cout << "Probability: " << output[0].first << " Prediction: " << ss.getString(*output[0].second) << " Truth: " << ss.getString(tree.node(node_id).Type()) << std::endl;
-
+            for (size_t j = 0; j<output.size(); ++j) {
+                std::cout << "Probability: " << output[j].first << " Prediction: " << ss.getString(*output[j].second)
+                          << " Truth: " << ss.getString(tree.node(node_id).Value()) << std::endl;
+            }
             //std::cout << tree.node(node_id).Type() << std::endl;
 
             //std::cout << tree.node(node_id).Type() << " --- " <<  model.GetLabelAtPosition(model.start_program_id(),

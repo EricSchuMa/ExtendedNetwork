@@ -13,3 +13,4 @@ bazel-models_phog
 bazel-testlogs
 bazel-ModelsPHOG
 *.json
+*.txt
