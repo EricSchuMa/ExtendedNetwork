@@ -3,17 +3,17 @@ class SmallConfig(object):
     init_scale = 0.05
     learning_rate = 0.001
     max_grad_norm = 5
-    num_layers = 1#1
+    num_layers = 1
     num_steps = 50
     attn_size = 50
     hidden_sizeN = 300
     hidden_sizeT = 500
     sizeH = 800
-    max_epoch = 1#8
-    max_max_epoch = 8#79
-    keep_prob = 1.0#1.0
-    lr_decay = 0.6#0.95
-    batch_size = 64#80
+    max_epoch = 1
+    max_max_epoch = 1
+    keep_prob = 1.0
+    lr_decay = 0.6
+    batch_size = 64
 
 
 class TestConfig(object):
