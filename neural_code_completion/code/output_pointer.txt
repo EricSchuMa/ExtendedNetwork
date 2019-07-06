@@ -1,0 +1,107 @@
+
+ Mon Jun 24 14:41:38 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/small_JS_non_terminal.pickle and ../pickle_data/small_JS_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Mon Jun 24 15:51:11 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/small_JS_non_terminal.pickle and ../pickle_data/small_JS_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Mon Jun 24 15:52:57 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_50k_whole.pickle
+condition on two, two layers
+
+ Mon Jun 24 16:01:48 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_50k_whole.pickle
+condition on two, two layers
+
+ Mon Jun 24 16:10:35 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_50k_whole.pickle
+condition on two, two layers
+
+ Tue Jun 25 08:49:17 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_50k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 08:48:42 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 08:50:32 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 08:58:17 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_50k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 09:00:41 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 10:55:01 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 09:01:45 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 09:18:33 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 09:21:55 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 10:26:34 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 10:31:07 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 12:31:09 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 12:32:53 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 12:46:44 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+
+ Wed Jun 26 12:52:15 2019
+start a new experiment output_pointer.txt
+Using dataset ../pickle_data/PY_non_terminal.pickle and ../pickle_data/PY_terminal_1k_whole.pickle
+condition on two, two layers
+Epoch: 1 Train Perplexity: 3.163 Train Accuracy: 0.627
+Epoch: 2 Train Perplexity: 2.581 Train Accuracy: 0.657
+Epoch: 3 Train Perplexity: 2.422 Train Accuracy: 0.672
+Epoch: 4 Train Perplexity: 2.321 Train Accuracy: 0.681
+Epoch: 5 Train Perplexity: 2.257 Train Accuracy: 0.687
+Epoch: 6 Train Perplexity: 2.218 Train Accuracy: 0.691
+Epoch: 7 Train Perplexity: 2.195 Train Accuracy: 0.694
