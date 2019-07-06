@@ -6,7 +6,6 @@ import inspect
 import time
 import os
 
-
 import tensorflow as tf
 import numpy as np
 import reader_pointer_original as reader
@@ -29,7 +28,7 @@ flags.DEFINE_string("save_path", './logs/modelPMN',
                     "Model output directory.")
 
 flags.DEFINE_string(
-    "model", "test",
+    "model", "small",
     "A type of model. Possible options are: small, medium, best.")
 
 
@@ -125,6 +124,7 @@ if __name__ == '__main__':
                     file=fout)
 
                 if i > 5:
+                    # TODO: edit summaries for mvalid
                     valid_perplexity, valid_accuracy = run_epoch(session, mvalid, train_writer)
                     tqdm.write("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
                     i + 1, valid_perplexity, valid_accuracy))
