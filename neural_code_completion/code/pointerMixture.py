@@ -163,9 +163,9 @@ class PMN(object):
         new_labels = tf.where(condition_tf, wrong_label, labels)
 
         loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example([f_logits], [labels], [new_weights])
-        probs = tf.nn.softmax(f_logits)
+        self._probs = tf.nn.softmax(f_logits)
 
-        correct_prediction = tf.equal(tf.cast(tf.argmax(probs, 1), dtype=tf.int32), new_labels)
+        correct_prediction = tf.equal(tf.cast(tf.argmax(self._probs, 1), dtype=tf.int32), new_labels)
         self._accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         self._cost = cost = tf.reduce_sum(loss) / batch_size
@@ -223,6 +223,10 @@ class PMN(object):
     @property
     def train_op(self):
         return self._train_op
+
+    @property
+    def probs(self):
+        return self._probs
 
 def run_epoch(session, model, writer, eval_op=None, verbose=False):
     """Runs the model on the given data."""
