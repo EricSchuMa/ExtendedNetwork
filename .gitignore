@@ -1,7 +1,7 @@
 data
-*idea
-*__pycache__
-*pickle_data
+**idea
+**__pycache__
+**pickle_data
 ModelsPHOG/.idea
 __pycache__
 logs
@@ -12,5 +12,5 @@ bazel-phog
 bazel-models_phog
 bazel-testlogs
 bazel-ModelsPHOG
-*.json
-*.txt
+**.json
+**.txt
