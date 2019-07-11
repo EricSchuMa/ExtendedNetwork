@@ -1,7 +1,7 @@
 cc_library(
-    name = "understanding",
+    name = "recommender",
     srcs = [
-        "utree.cpp",
+        "recommend.cpp",
     ],
     linkopts = ["-lm"],  #  Math library
     visibility = ["//visibility:public"],
@@ -14,8 +14,8 @@ cc_library(
 )
 
 cc_binary(
-    name = "utree",
-    srcs = ["utree.cpp"],
+    name = "recommend",
+    srcs = ["recommend.cpp"],
     deps = [
         "//base",
         "//phog/dsl",
