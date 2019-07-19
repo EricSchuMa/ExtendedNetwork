@@ -323,7 +323,7 @@ const {
     Feature f;
     const auto& uncond_items = counts_[program_id].LabelsSortedByProbability(f);
     if (uncond_items.empty()) {
-         //return label_prob_dist;
+         return label_prob_dist;
     }
 
     for (size_t i = 0; i<uncond_items.size() && i<3; ++i){
@@ -347,4 +347,25 @@ bool TGenModel::IsLabelBestPrediction(
   return GetBestLabelLogProb(program_id, exec, sample, slice).second == GetLabelAtPosition(program_id, exec, sample, slice);
 }
 
+template<class Archive>
+void TGenModel::serialize(Archive & ar, const unsigned int version){
+    ar & is_for_node_type_;
+    ar & counts_;
+}
 
+void TGenModel::save_model_to_file(const std::string& filename) const{
+    std::ofstream os(filename);
+    boost::archive::text_oarchive oa(os);
+
+    oa << this;
+
+}
+
+void TGenModel::load_model_from_file(const std::string& filename) {
+  std::ifstream is(filename);
+  boost::archive::text_iarchive ia(is);
+
+  ia & is_for_node_type_;
+  ia & counts_;
+
+}
