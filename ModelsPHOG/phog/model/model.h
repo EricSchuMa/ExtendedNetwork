@@ -18,6 +18,9 @@
 #define PHOG_MODEL_MODEL_H_
 
 #include "phog/dsl/tgen_program.h"
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
 
 //////////////////////////////////////////////////////////////////////
 // Execution of TGen programs.
@@ -191,7 +194,15 @@ public:
   bool is_for_node_type() const { return is_for_node_type_; }
 
   int start_program_id() const { return program_.size() - 1; }
+
+  void save_model_to_file(const std::string& filename) const;
+  void load_model_from_file(const std::string& filename) ;
+
 private:
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version);
+
   int GetSubmodelBranch(
       int program_id,
       const TCondLanguage::ExecutionForTree& exec,
