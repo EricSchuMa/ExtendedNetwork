@@ -4,7 +4,6 @@ from pointerMixture import PMN, PMNInput
 from train import get_config
 from six.moves import cPickle as pickle
 
-
 import reader_pointer_original as reader
 
 pickle_dir = '/home/max/ExtendedNetwork/code_completion_anonymous/pickle_data'
@@ -12,15 +11,15 @@ N_filename = '../pickle_data/PY_non_terminal.pickle'
 T_filename = '../pickle_data/PY_terminal_1k_whole.pickle'
 
 flags = tf.flags
-#flags.DEFINE_string("save_path", './logs/modelPMN',
+# flags.DEFINE_string("save_path", './logs/modelPMN',
 #                    "Model output directory.")
 
-#flags.DEFINE_string(
+# flags.DEFINE_string(
 #    "model", "test",
 #    "A type of model. Possible options are: small, medium, best.")
 
 
-#flags.DEFINE_bool("use_fp16", False,
+# flags.DEFINE_bool("use_fp16", False,
 #                  "Train using 16-bit floats instead of 32bit floats")
 FLAGS = flags.FLAGS
 logging = tf.logging
@@ -31,6 +30,7 @@ class recommender(object):
     This class instantiates an PMN object from a checkpoint to predict next AST nodes for
     python ASTs
     """
+
     def __init__(self):
         pass
 
@@ -68,15 +68,10 @@ class recommender(object):
                 # session.run(predictions, feed_dict)
                 pass
 
+
 if __name__ == '__main__':
-    #train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = \
+    # train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = \
     #    reader.input_data(N_filename, T_filename)
     
-
     recomm = recommender()
     recomm.predict_next()
-
-
-
-
-

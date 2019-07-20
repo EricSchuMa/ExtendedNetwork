@@ -14,16 +14,19 @@ import tensorflow as tf
 
 import reader_pointer_original as reader
 
+
 class PMNInput(object):
-  """The input data."""
-  def __init__(self, config, data, name=None, FLAGS=None):
-    self.batch_size = batch_size = config.batch_size
-    # self.attn_size = attn_size = config.attn_size
-    self.num_steps = num_steps = config.num_steps
-    self.input_dataN, self.targetsN, self.input_dataT, self.targetsT, self.epoch_size, self.eof_indicator = \
-      reader.data_producer(data, batch_size, num_steps, config.vocab_size, config.attn_size, change_yT=False, name=name)
-    if FLAGS.model == "test":
-       self.epoch_size = 16   # small epoch size for test
+    """The input data."""
+
+    def __init__(self, config, data, name=None, FLAGS=None):
+        self.batch_size = batch_size = config.batch_size
+        self.attn_size = attn_size = config.attn_size
+        self.num_steps = num_steps = config.num_steps
+        self.input_dataN, self.targetsN, self.input_dataT, self.targetsT, self.epoch_size, self.eof_indicator = \
+            reader.data_producer(data, batch_size, num_steps, config.vocab_size, config.attn_size, change_yT=False,
+                                 name=name)
+        if FLAGS.model == "test":
+            self.epoch_size = 16  # small epoch size for test
 
 
 class PMN(object):
@@ -34,13 +37,13 @@ class PMN(object):
 
     def __init__(self, is_training, config, input_, FLAGS):
         self._input = input_
-        self.attn_size = attn_size = config.attn_size # attention size
+        self.attn_size = attn_size = config.attn_size  # attention size
         batch_size = input_.batch_size
-        num_steps = input_.num_steps # the lstm unrolling length
-        self.sizeN = sizeN = config.hidden_sizeN # embedding size of type(N)
-        self.sizeT = sizeT = config.hidden_sizeT # embedding size of value(T)
-        self.size = size = config.sizeH # hidden size of the lstm cell
-        (vocab_sizeN, vocab_sizeT) = config.vocab_size # vocabulary size for type and value
+        num_steps = input_.num_steps  # the lstm unrolling length
+        self.sizeN = sizeN = config.hidden_sizeN  # embedding size of type(N)
+        self.sizeT = sizeT = config.hidden_sizeT  # embedding size of value(T)
+        self.size = size = config.sizeH  # hidden size of the lstm cell
+        (vocab_sizeN, vocab_sizeT) = config.vocab_size  # vocabulary size for type and value
 
         def data_type():
             return tf.float16 if FLAGS.use_fp16 else tf.float32
@@ -80,7 +83,7 @@ class PMN(object):
 
         self._initial_state = state_variables
 
-        self.eof_indicator = input_.eof_indicator # indicate whether this is the end of a sentence
+        self.eof_indicator = input_.eof_indicator  # indicate whether this is the end of a sentence
 
         with tf.device("/cpu:0"):
             embeddingN = tf.get_variable(
@@ -181,7 +184,7 @@ class PMN(object):
         tvars = tf.trainable_variables()
         grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars),
                                           config.max_grad_norm)
-        print ('*******the length', len(grads))
+        print('*******the length', len(grads))
         optimizer = tf.train.AdamOptimizer(self._lr)
         self._train_op = optimizer.apply_gradients(
             zip(grads, tvars),
@@ -228,6 +231,7 @@ class PMN(object):
     def probs(self):
         return self._probs
 
+
 def run_epoch(session, model, writer, eval_op=None, verbose=False):
     """Runs the model on the given data."""
     start_time = time.time()
@@ -246,14 +250,14 @@ def run_epoch(session, model, writer, eval_op=None, verbose=False):
         "eof_indicator": model.eof_indicator,
         "memory": model.output,
         "summary": model.summary
-        }
+    }
     if eval_op is not None:
         fetches["eval_op"] = eval_op
 
     for step in tqdm(range(model.input.epoch_size)):
         feed_dict = {}
-        sub_cond = np.expand_dims(eof_indicator, axis = 1)
-        condition = np.repeat(sub_cond, model.size, axis = 1)
+        sub_cond = np.expand_dims(eof_indicator, axis=1)
+        condition = np.repeat(sub_cond, model.size, axis=1)
         zero_state = session.run(model.initial_state)
 
         for i, (c, h) in enumerate(model.initial_state):
@@ -267,7 +271,7 @@ def run_epoch(session, model, writer, eval_op=None, verbose=False):
         cost = vals["cost"]
         accuracy = vals["accuracy"]
         eof_indicator = vals["eof_indicator"]
-        state = vals["final_state"]  #use the final state as the initial state within a whole epoch
+        state = vals["final_state"]  # use the final state as the initial state within a whole epoch
         memory = vals["memory"]
         summary = vals["summary"]
 
@@ -277,11 +281,10 @@ def run_epoch(session, model, writer, eval_op=None, verbose=False):
         costs += cost
         iters += model.input.num_steps
 
-
         if verbose and step % (model.input.epoch_size // 10) == 10:
             tqdm.write("%.3f perplexity: %.3f accuracy: %.4f speed: %.0f wps" %
                        (step * 1.0 / model.input.epoch_size, np.exp(costs / iters), np.mean(accuracy_list),
                         (time.time() - start_time)))
 
-    print ('this run_epoch takes time %.2f' %(time.time() - start_time))
+    print('this run_epoch takes time %.2f' % (time.time() - start_time))
     return np.exp(costs / iters), np.mean(accuracy_list)

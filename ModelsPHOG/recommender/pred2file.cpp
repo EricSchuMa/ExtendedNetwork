@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
             predictions << "{" << "\"id\":\""<< node_id << "\"" << ",\"predictions\":[";
             FullTreeTraversal sample(exec.tree(), node_id);
             TreeSlice slice(exec.tree(), node_id, !model.is_for_node_type());
-            std::vector<std::pair<double, int const*>> output = model.GetLabelDistribution(model.start_program_id(),
-                                                                                           exec, sample, &slice);
+            std::vector<std::pair<double, int const*>> output = \
+            model.GetLabelDistribution(model.start_program_id(), exec, sample, &slice);
             for (size_t j = 0; j<output.size(); ++j) {
                 std::string prediction = ss.getString(*output[j].second);
                 if (prediction != "") {
