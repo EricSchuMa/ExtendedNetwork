@@ -72,6 +72,6 @@ class recommender(object):
 if __name__ == '__main__':
     # train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = \
     #    reader.input_data(N_filename, T_filename)
-    
+
     recomm = recommender()
     recomm.predict_next()
