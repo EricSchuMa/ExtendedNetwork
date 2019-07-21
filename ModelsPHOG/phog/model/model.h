@@ -189,7 +189,7 @@ public:
   std::vector<std::pair<double, int const*>> GetLabelDistribution(
           int program_id,
           const TCondLanguage::ExecutionForTree& exec,
-          FullTreeTraversal sample, const TreeSlice* slice) const ;
+          FullTreeTraversal sample, const TreeSlice* slice, int n_pred) const ;
 
   bool is_for_node_type() const { return is_for_node_type_; }
 
