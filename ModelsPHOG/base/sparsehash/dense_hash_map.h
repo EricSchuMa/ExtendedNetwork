@@ -97,12 +97,14 @@
 #define _DENSE_HASH_MAP_H_
 
 #include "base/sparsehash/internal/sparseconfig.h"
+#include <fstream>
 #include <algorithm>                        // needed by stl_alloc
 #include <functional>                       // for equal_to<>, select1st<>, etc
 #include <memory>                           // for alloc
 #include <utility>                          // for pair<>
 #include "base/sparsehash/internal/densehashtable.h"        // IWYU pragma: export
 #include "base/sparsehash/internal/libc_allocator_with_realloc.h"
+#include <boost/serialization/string.hpp>
 #include HASH_FUN_H                 // for hash<>
 _START_GOOGLE_NAMESPACE_
 
@@ -337,7 +339,7 @@ class dense_hash_map {
   //    owns) and returns the number of bytes successfully written.
   //    Note basic_ostream<not_char> is not currently supported.
   template <typename ValueSerializer, typename OUTPUT>
-  bool serialize(ValueSerializer serializer, OUTPUT* fp) {
+  bool serialize_(ValueSerializer serializer, OUTPUT* fp) {
     return rep.serialize(serializer, fp);
   }
 
@@ -352,9 +354,64 @@ class dense_hash_map {
   // NOTE: Since value_type is std::pair<const Key, T>, ValueSerializer
   // may need to do a const cast in order to fill in the key.
   template <typename ValueSerializer, typename INPUT>
-  bool unserialize(ValueSerializer serializer, INPUT* fp) {
+  bool unserialize_(ValueSerializer serializer, INPUT* fp) {
     return rep.unserialize(serializer, fp);
   }
+
+  template <class Archive>
+  void save(Archive & ar, const unsigned int version) const{
+    // write map to file
+    NopointerSerializer serializer;
+    std::ofstream temp_file_out;
+    temp_file_out.open("/home/max/Documents/buffer.tmp");
+
+    // write map to file
+    rep.serialize(serializer, &temp_file_out);
+    temp_file_out.close();
+
+    // read map from file into buffer
+    std::ifstream temp_file_in("/home/max/Documents/buffer.tmp");
+
+    // allocate memory for file content
+    std::string buffer;
+    temp_file_in.seekg(0, std::ios::end);
+    long size = temp_file_in.tellg();
+    buffer.reserve(size);
+    temp_file_in.seekg(0, std::ios::beg);
+
+    // write file contents to string
+    buffer.assign((std::istreambuf_iterator<char>(temp_file_in)),
+               std::istreambuf_iterator<char>());
+
+
+    // save buffer to archive
+    std::cout << size;
+    ar & size;
+    //ar & buffer;
+
+    // delete temporary file
+    assert(std::remove("/home/max/Documents/buffer.tmp") == 0);
+
+  }
+
+  template <class Archive>
+  void load(Archive & ar, const unsigned int version){
+    // NopointerSerializer serializer;
+    //FILE * f;
+    //f = fopen("/home/max/Documents/map.data", "r");
+    //rep.unserialize(serializer, ar);
+    //fclose(f);
+
+    long size = 0;
+    ar & size;
+    std::cout << size;
+    std::string buffer;
+    buffer.reserve(size);
+    ar & buffer;
+    std::cout << buffer;
+  }
+
+  BOOST_SERIALIZATION_SPLIT_MEMBER();
 };
 
 // We need a global swap as well

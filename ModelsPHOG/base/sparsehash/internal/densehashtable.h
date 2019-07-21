@@ -1106,8 +1106,8 @@ class dense_hashtable {
 
   // ValueSerializer: a functor.  operator()(OUTPUT*, const value_type&)
   template <typename ValueSerializer, typename OUTPUT>
-  bool serialize(ValueSerializer serializer, OUTPUT *fp) {
-    squash_deleted();           // so we don't have to worry about delkey
+  bool serialize(ValueSerializer serializer, OUTPUT *fp) const{
+    //squash_deleted();           // so we don't have to worry about delkey
     if ( !sparsehash_internal::write_bigendian_number(fp, MAGIC_NUMBER, 4) )
       return false;
     if ( !sparsehash_internal::write_bigendian_number(fp, num_buckets, 8) )
