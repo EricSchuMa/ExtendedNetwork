@@ -1,7 +1,7 @@
 cc_library(
     name = "recommender",
     srcs = [
-        "recommend.cpp",
+        "pred2file.cpp",
     ],
     linkopts = ["-lm"],  #  Math library
     visibility = ["//visibility:public"],
@@ -14,8 +14,8 @@ cc_library(
 )
 
 cc_binary(
-    name = "recommend",
-    srcs = ["recommend.cpp"],
+    name = "pred2file",
+    srcs = ["pred2file.cpp"],
     deps = [
         "//base",
         "//phog/dsl",
