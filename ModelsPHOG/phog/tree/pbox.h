@@ -27,6 +27,13 @@
 #include <vector>
 #include <iostream>
 
+//#include <boost/serialization/utility.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include "base/sparsehash/dense_hash_map.h"
 #include "base/stringprintf.h"
 #include "tree.h"
@@ -222,6 +229,12 @@ public:
       deltas_[i] = std::max(std::min(deltas_[i], 1.0), 0.0);
     }
     LOG(INFO) << "delta_1 = " << deltas_[1] << ", delta_2: " << deltas_[2] << ", delta_3: " << deltas_[3];
+  }
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & deltas_estimated_;
+    ar & counts_;
+    ar & deltas_;
   }
 
 
@@ -494,6 +507,12 @@ public:
 
   int hash_;
   int size_;
+
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & hash_;
+    ar & size_;
+  }
 private:
   SequenceHashFeature(int hash, int size) : hash_(hash), size_(size) {}
 };
@@ -579,6 +598,12 @@ public:
     }
 
     std::unordered_map<V, int> per_value_continuations_;
+
+    template<class Archive>
+    void serialize(Archive & ar, unsigned int version) {
+      ar & per_value_continuations_;
+      ar & total_count_;
+    }
   private:
     int total_count_;
   };
@@ -612,6 +637,48 @@ public:
 
       return result;
     }
+
+    template<class Archive>
+    void save(Archive & ar, unsigned int version) const{
+      ar & total_count_;
+      ar & unique_count_;
+      size_t size = sorted_by_prob_.size();
+      ar & size;
+      // manually serialize vector
+      for (size_t i = 0; i<size; ++i){
+        ar & sorted_by_prob_[i].first;
+        ar & *sorted_by_prob_[i].second;
+      }
+      ar & counts_;
+    }
+
+    template<class Archive>
+    void load(Archive & ar, unsigned int version) {
+      ar & total_count_;
+      ar & unique_count_;
+
+      size_t size = 0;
+      ar & size;
+      sorted_by_prob_.clear();
+      sorted_by_prob_.reserve(size);
+
+      while (size -- >= 0){
+        V P;
+        double x;
+        ar & x;
+        ar & P;
+        std::pair<double, V*> y;
+        y.first = x;
+        y.second = &P;
+        sorted_by_prob_.push_back(y);
+      }
+
+      ar & counts_;
+
+
+    }
+
+    BOOST_SERIALIZATION_SPLIT_MEMBER();
 
   private:
     friend class PerFeatureValueCounter<F, V>;
@@ -797,6 +864,15 @@ public:
     }
     return it->second;
   }
+
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version) {
+    //ar & feature_stats_;
+    //ar & value_stats_;
+    //ar & deltas_;
+    ar & feature_value_counts_;
+  }
+
 };
 
 #endif /* SYNTREE_PBOX_H_ */
