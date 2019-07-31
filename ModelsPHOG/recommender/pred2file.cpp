@@ -2,7 +2,6 @@
 // Created by max on 17.06.19.
 //
 
-//#include "base/stringset.h"
 #include "phog/tree/tree.h"
 
 #include "phog/dsl/tcond_language.h"
@@ -17,7 +16,6 @@ DEFINE_string(training_data, "", "A file with the tree information.");
 DEFINE_string(source_file, "", "A file with the tree information");
 DEFINE_string(target_file, "", "File for writing the predictions");
 DEFINE_string(tgen_program_types, "", "A file with a TGen program for types.");
-DEFINE_string(evaluation_data, "", "");
 DEFINE_string(tgen_program_values, "",
               "A file with a TGen program for values.");
 DEFINE_int32(num_training_asts, 100000,
@@ -38,12 +36,13 @@ void write_pred_to_file(TGenModel& model_types, TGenModel& model_values,
   // open target file for writing predictions
   std::ofstream predictions;
   predictions.open(target_file);
-
+  Json::FastWriter json_writer;
   TreeNode node;
   for (size_t tree_id = 0; tree_id < eval_trees.size(); ++tree_id) {
-    predictions << "[";
     const TreeStorage &tree = eval_trees[tree_id];
     TCondLanguage::ExecutionForTree exec(&ss, &tree);
+    // one object for each tree
+    Json::Value json_val;
     for (unsigned node_id = 0; node_id < tree.NumAllocatedNodes(); ++node_id) {
 
       // same tree used for types and values
@@ -56,57 +55,33 @@ void write_pred_to_file(TGenModel& model_types, TGenModel& model_values,
                              !model_values.is_for_node_type());
 
       // generate outputs for value and type pair: <log_prob, label>
-      std::pair<double, int> type_pred =
-          model_types.GetBestLabelLogProb(model_types.start_program_id(),
-                                           exec, sample,
-                                           &slice_types);
-      std::pair<double, int> value_pred =
-          model_values.GetBestLabelLogProb(model_values.start_program_id(),
-              exec, sample,
-              &slice_values);
+      std::pair<double, int> type_pred = model_types.GetBestLabelLogProb(
+          model_types.start_program_id(), exec, sample, &slice_types);
+      std::pair<double, int> value_pred = model_values.GetBestLabelLogProb(
+          model_values.start_program_id(), exec, sample, &slice_values);
 
+      // write type and value
+      json_val[node_id]["type"] = ss.getString(type_pred.second);
+      if (value_pred.second > 0) {
+        json_val[node_id]["value"] = ss.getString(value_pred.second);
 
-      // write type-predictions
-      predictions << "{" << "\"type\":";
-      std::string type = ss.getString(type_pred.second);
-      predictions << "\"" << type << "\"";
-
-      // write prob for type
-      predictions << ",\"ptype\":";
-      predictions << "\"" << type_pred.first << "\"";
-      // write value-predictions
-      predictions << ",\"value\":";
-
-      std::string value = ss.getString(value_pred.second);
-
-      // handle escapes
-      boost::replace_all(value, "\\", "\\\\");
-      boost::replace_all(value, "\"", "\\\"");
-      boost::replace_all(value, "\n", "\\n");
-
-      if(value_pred.second>0) {
-        predictions << "\"" << value << "\"";
+      } else {
+        json_val[node_id]["value"] = "None";
       }
-      else {
-          predictions << "\"" << "emptY" << "\"";}
 
-      // write prob for type
-      predictions << ",\"pvalue\":";
-      predictions << "\"" << value_pred.first << "\"";
-
-      // close node
-      if (node_id < tree.NumAllocatedNodes() - 1)
-        predictions << "},";
-      else
-        predictions << "}";
+      // write probs
+      json_val[node_id]["pvalue"] = value_pred.first;
+      json_val[node_id]["ptype"] = type_pred.first;
     }
-    predictions << "]";
-
-    // write every tree in one line
-    if (tree_id < eval_trees.size() - 1) {
-      predictions << "\n";
+    // omit line break at last node
+    if (tree_id == eval_trees.size() - 1){
+      json_writer.omitEndingLineFeed();
     }
+    predictions << json_writer.write(json_val);
+
   }
+  predictions.close();
+
 }
 
 int main(int argc, char **argv) {
