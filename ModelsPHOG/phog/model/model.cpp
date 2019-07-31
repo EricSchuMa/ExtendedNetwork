@@ -308,7 +308,7 @@ std::pair<double, int> TGenModel::GetBestLabelLogProb(
 
 std::vector<std::pair<double, int const*>> TGenModel::GetLabelDistribution(
         int program_id, const TCondLanguage::ExecutionForTree& exec,
-        FullTreeTraversal sample, const TreeSlice* slice, int n_pred) const {
+        FullTreeTraversal sample, const TreeSlice* slice,unsigned int n_pred) const {
     size_t call_length = 0;
     while (program_.program_type(program_id) == TGenProgram::ProgramType::BRANCHED_PROGRAM) {
         program_id = GetSubmodelBranch(program_id, exec, sample, slice);
