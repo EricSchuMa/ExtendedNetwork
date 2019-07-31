@@ -17,6 +17,14 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 
 def input_data(N_filename, T_filename):
+    """
+    Loads the pickle files for non-terminals and terminals into memory
+    :param N_filename: pickle file containing the training, testing-data
+                       and Information about parents + vocab size for non-terminals
+    :param T_filename: pickle file containing the training and testing-data for terminals, and atn_size and vocab_size
+                       they were created with
+    :return: contents of the pickle dictionaries
+    """
     start_time = time.time()
     with open(N_filename, 'rb') as f:
         print("reading data from ", N_filename)
@@ -37,8 +45,8 @@ def input_data(N_filename, T_filename):
         test_dataT = save['testData']
         vocab_sizeT = save['vocab_size']
         attn_size = save['attn_size']
-        print('the vocab_sizeT is %d (not including the unk and eof)' %vocab_sizeT)
-        print('the attn_size is %d' %attn_size)
+        print('the vocab_sizeT is %d (not including the unk and eof)' % vocab_sizeT)
+        print('the attn_size is %d' % attn_size)
         print('the number of training data is %d' %(len(train_dataT)))
         print('the number of test data is %d' %(len(test_dataT)))
         print('Finish reading data and take %.2f\n'%(time.time()-start_time))
@@ -47,7 +55,17 @@ def input_data(N_filename, T_filename):
 
 
 def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change_yT=False, name=None, verbose=False):
-
+    """
+    :param raw_data: data from input_data: consisting of N, T and P
+    :param batch_size: number of samples to produce in each step
+    :param num_steps: the number of steps in one RNN pass-through
+    :param vocab_size: T and N vocab sizes according to data pre-processing (+1 for added eof-token)
+    :param attn_size: size of attn-window predefined through pre-processing
+    :param change_yT:
+    :param name: Optional name_scope parameter for tensorflow
+    :param verbose: whether to show data statistics or not
+    :return:
+    """
     start_time = time.time()
 
     with tf.name_scope(name, "DataProducer", [raw_data, batch_size, num_steps, vocab_size]):
@@ -101,7 +119,7 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         long_lineT_truncated_y = np.array(long_lineT[0 : n * (batch_size * num_steps)])
 
         # long_lineP_truncated[long_lineP_truncated > attn_size] = attn_size  #if the parent location is too far
-        long_lineP_truncated = [long_lineN_truncated[i-j] for i,j in enumerate(long_lineP_truncated)] #only store parent N
+        long_lineP_truncated = [long_lineN_truncated[i-j] for i, j in enumerate(long_lineP_truncated)] #only store parent N
 
         location_index = long_lineT_truncated_x > eof_T_id
         long_lineT_truncated_x[location_index] = unk_id
@@ -146,9 +164,10 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         xP.set_shape([batch_size, num_steps])
 
         eof_indicator = tf.equal(xN[:, num_steps - 1], tf.constant([eof_N_id]*batch_size))
-        print('Finish preparing input producer and takes %.2fs' %(time.time()-start_time))
-        print('Each produce data takes time %.2f\n' %(time.time()-per_start))
+        print('Finish preparing input producer and takes %.2fs' % (time.time()-start_time))
+        print('Each produce data takes time %.2f\n' % (time.time()-per_start))
         return xN, yN, xT, yT, epoch_size, eof_indicator, xP
+
 
 if __name__ == '__main__':
     N_filename = '../pickle_data/PY_non_terminal.pickle'
