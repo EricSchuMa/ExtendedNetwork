@@ -346,6 +346,20 @@ bool TGenModel::IsLabelBestPrediction(
   return GetBestLabelLogProb(program_id, exec, sample, slice).second == GetLabelAtPosition(program_id, exec, sample, slice);
 }
 
+void TGenModel::train(StringSet &ss, std::vector<TreeStorage> &trees, const int num_training_asts) {
+    for (size_t tree_id = 0; tree_id < trees.size(); ++tree_id) {
+        const TreeStorage &tree = trees[tree_id];
+        TCondLanguage::ExecutionForTree exec(&ss, &tree);
+        for (unsigned node_id = 0; node_id < tree.NumAllocatedNodes(); ++node_id) {
+            GenerativeTrainOneSample(start_program_id(), exec,
+                                           FullTreeTraversal(&tree, node_id));
+            LOG_EVERY_N(INFO, num_training_asts * 100)
+                << "Training... (logged every " << num_training_asts * 100
+                << " samples).";
+        }
+    }
+}
+
 template<class Archive>
 void TGenModel::serialize(Archive & ar, const unsigned int version){
     ar & is_for_node_type_;

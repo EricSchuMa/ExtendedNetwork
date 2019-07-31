@@ -197,6 +197,8 @@ public:
 
   void save_model_to_file(const std::string& filename) const;
   void load_model_from_file(const std::string& filename) ;
+  void train(StringSet& ss,
+             std::vector<TreeStorage>& trees, int num_training_asts);
 
 private:
   friend class boost::serialization::access;
