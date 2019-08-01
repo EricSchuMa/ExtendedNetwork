@@ -37,9 +37,9 @@ int main(int argc, char** argv){
   std::map<std::string, double> accuracies;
   accuracies["type"] = 0;
   accuracies["value"] = 0;
-  size_t i = 0;
+  int num_asts = 0;
   while (!reader_pred->ReachedEnd() && !reader_orig->ReachedEnd()) {
-    ++i;
+    ++ num_asts;
     std::string s_pred;
     reader_pred->Read(&s_pred);
 
@@ -77,8 +77,9 @@ int main(int argc, char** argv){
       accuracies[key] += (correct_pred / total);
     }
   }
-  accuracies["type"] /= i;
-  accuracies["value"] /= i;
+  accuracies["type"] /= num_asts;
+  accuracies["value"] /= num_asts;
+
   // both files should contain the same number of asts
   std::cout << "\nAccuracy value = " << accuracies["value"]
   << "\nAccuracy type = " << accuracies["type"];
