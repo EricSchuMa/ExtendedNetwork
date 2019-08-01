@@ -2,6 +2,7 @@ data
 **idea
 **__pycache__
 **pickle_data
+**.pickle
 ModelsPHOG/.idea
 __pycache__
 logs
