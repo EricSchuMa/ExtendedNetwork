@@ -40,7 +40,7 @@ def process(filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=
     :return: terminal_corpus
     """
     with open(filename, encoding='latin-1') as lines:
-        print('Start procesing %s !!!'% filename)
+        print('Start procesing %s !!!' % filename)
         terminal_corpus = list()
         attn_que = deque(maxlen=attn_size)
         attn_success_total = 0
@@ -52,14 +52,14 @@ def process(filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=
             # if is_train and line_index == 11:
             #   continue
             if line_index % 1000 == 0:
-                print ('Processing line:', line_index)
+                print('Processing line:', line_index)
             data = json.loads(line)
             if len(data) < 3e4:
                 terminal_line = list()
-                attn_que.clear() # have a new queue for each file
+                attn_que.clear()  # have a new queue for each file
                 attn_success_cnt = 0
                 attn_fail_cnt = 0
-                for i, dic in enumerate(data):      # JS data[:-1] or PY data
+                for i, dic in enumerate(data):  # JS data[:-1] or PY data
                     if 'value' in dic.keys():
                         dic_value = dic['value']
                         if dic_value in terminal_dict.keys():  # take long time!!!
@@ -67,10 +67,12 @@ def process(filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=
                             attn_que.append('NormaL')
                         else:
                             if dic_value in attn_que:
-                                location_index = [len(attn_que)-ind for ind,x in enumerate(attn_que) if x==dic_value][-1]
-                                location_id = unk_id + 1 + (location_index)
+                                location_index = [len(attn_que)-ind for ind, x
+                                                  in enumerate(attn_que) if x == dic_value][-1]
+                                location_id = unk_id + 1 + location_index
                                 print('\nattn_success!! its value is ', dic_value)
-                                print('The current file index: ', line_index, ', the location index', location_index,', the location_id: ', location_id, ',\n the attn_que', attn_que)
+                                print('The current file index: ', line_index, ', the location index', location_index,
+                                      ', the location_id: ', location_id, ',\n the attn_que', attn_que)
                                 terminal_line.append(location_id)
                                 attn_success_cnt += 1
                             else:
@@ -85,15 +87,22 @@ def process(filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=
                 attn_fail_total += attn_fail_cnt
                 attn_total = attn_success_total + attn_fail_total
                 length_total += len(data)
-                # print ('Process line', line_index, 'attn_success_cnt', attn_success_cnt, 'attn_fail_cnt', attn_fail_cnt,'data length', len(data))
+                # print ('Process line', line_index, 'attn_success_cnt', attn_success_cnt,
+                # 'attn_fail_cnt', attn_fail_cnt,'data length', len(data))
                 if verbose and line_index % 1000 == 0:
-                    print('\nUntil line %d: attn_success_total: %d, attn_fail_total: %d, success/attn_total: %.4f, length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n'%
-                          (line_index, attn_success_total, attn_fail_total, float(attn_success_total)/attn_total, length_total,
-                           float(attn_success_total)/length_total, float(attn_total)/length_total))
+                    print('\nUntil line %d: attn_success_total: %d, attn_fail_total: %d, success/attn_total: %.4f,'
+                          ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
+                          (line_index, attn_success_total, attn_fail_total,
+                           float(attn_success_total)/attn_total, length_total,
+                           float(attn_success_total)/length_total,
+                           float(attn_total)/length_total))
         with open('output.txt', 'a') as fout:
-            fout.write('Statistics: attn_success_total: %d, attn_fail_total: %d, success/fail: %.4f, length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n'%
-                       (attn_success_total, attn_fail_total, float(attn_success_total)/attn_fail_total, length_total,
-                        float(attn_success_total)/length_total, float(attn_success_total + attn_fail_total)/length_total))
+            fout.write('Statistics: attn_success_total: %d, attn_fail_total: %d, success/fail: %.4f,'
+                       ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
+                       (attn_success_total, attn_fail_total,
+                        float(attn_success_total)/attn_fail_total, length_total,
+                        float(attn_success_total)/length_total,
+                        float(attn_success_total + attn_fail_total)/length_total))
 
         return terminal_corpus
 
