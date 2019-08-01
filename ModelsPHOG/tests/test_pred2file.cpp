@@ -38,7 +38,7 @@ int main(int argc, char** argv){
   accuracies["type"] = 0;
   accuracies["value"] = 0;
   size_t i = 0;
-  while (!reader_pred->ReachedEnd() && !reader_orig->ReachedEnd() && i<5000) {
+  while (!reader_pred->ReachedEnd() && !reader_orig->ReachedEnd()) {
     ++i;
     std::string s_pred;
     reader_pred->Read(&s_pred);
@@ -64,7 +64,7 @@ int main(int argc, char** argv){
         if (v_orig[j][key] == v_pred[j][key]) {
           correct_pred++;
         }
-        else if (v_orig[j][key].empty() && v_pred[j][key] == "emptY") {
+        else if (v_orig[j][key].empty() && v_pred[j][key] == "None") {
           correct_pred++;
         }
         else{
@@ -80,11 +80,12 @@ int main(int argc, char** argv){
   accuracies["type"] /= i;
   accuracies["value"] /= i;
   // both files should contain the same number of asts
-  assert(reader_orig->ReachedEnd() == reader_pred->ReachedEnd());
+  std::cout << "\nAccuracy value = " << accuracies["value"]
+  << "\nAccuracy type = " << accuracies["type"];
+
   // accuracies should be over 80% for types and over 60% for values
   assert(accuracies["type"] > 0.8);
   assert(accuracies["value"] > 0.6);
-  std::cout << "All tests passed" << "\nAccuracy value = " << accuracies["value"]
-    << "\nAccuracy type = " << accuracies["type"];
+  std::cout << "\nAll tests passed";
 
 }
