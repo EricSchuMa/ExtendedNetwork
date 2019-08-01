@@ -19,7 +19,7 @@
 
 #include "glog/logging.h"
 
-DEFINE_bool(enable_teq, true, "Enable using TEq programs");
+DEFINE_bool(enable_teq, false, "Enable using TEq programs");
 DEFINE_int32(beam_size, 4, "Number of best labels to try at each model order.");
 
 const int TEQ_LABEL_INDEX_START = -10;
