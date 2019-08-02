@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import inspect
 import time
+import datetime
 import os
 
 import tensorflow as tf
@@ -24,11 +25,11 @@ N_filename = '../pickle_data/PY_non_terminal.pickle'
 T_filename = '../pickle_data/PY_terminal_1k_whole.pickle'
 
 flags = tf.flags
-flags.DEFINE_string("save_path", './logs/modelPMN',
-                    "Model output directory.")
+flags.DEFINE_string("logDir", "./logs/" + str(datetime.date.today()) + "/", "logging directory")
+
 
 flags.DEFINE_string(
-    "model", "small",
+    "model", "test",
     "A type of model. Possible options are: small, medium, best.")
 
 
@@ -106,16 +107,17 @@ if __name__ == '__main__':
         max_step = 0
         saver = tf.train.Saver(tf.trainable_variables())
 
-        sv = tf.train.Supervisor(logdir=None, summary_op=None)
+        sv = tf.train.Supervisor(logdir='.log', summary_op=None)
         with sv.managed_session() as session:
-            train_writer = tf.summary.FileWriter('./logs', graph=tf.get_default_graph())
+            train_writer = tf.summary.FileWriter(FLAGS.logDir, graph=tf.get_default_graph())
 
             for i in tqdm(range(config.max_max_epoch)):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)
                 tqdm.write("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
 
-                train_perplexity, train_accuracy = run_epoch(session, m, train_writer, eval_op=m.train_op, verbose=True)
+                train_perplexity, train_accuracy = run_epoch(session, m, train_writer, i,
+                                                             eval_op=m.train_op, verbose=True)
 
                 tqdm.write(
                     "Epoch: %d Train Perplexity: %.3f Train Accuracy: %.3f" % (i + 1, train_perplexity, train_accuracy))
@@ -123,9 +125,8 @@ if __name__ == '__main__':
                     "Epoch: %d Train Perplexity: %.3f Train Accuracy: %.3f" % (i + 1, train_perplexity, train_accuracy),
                     file=fout)
 
-                if i > 5:
-                    # TODO: edit summaries for mvalid
-                    valid_perplexity, valid_accuracy = run_epoch(session, mvalid, train_writer)
+                if i > 0:
+                    valid_perplexity, valid_accuracy = run_epoch(session, mvalid, train_writer, i)
                     tqdm.write("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
                     i + 1, valid_perplexity, valid_accuracy))
                     print("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
@@ -134,9 +135,9 @@ if __name__ == '__main__':
                         max_valid = valid_accuracy
                         max_step = i + 1
 
-                if FLAGS.save_path:
-                    tqdm.write("Saving model to %s." % FLAGS.save_path)
-                    saver.save(session, FLAGS.save_path, global_step=i)
+
+                tqdm.write("Saving model to %s." % FLAGS.logDir)
+                saver.save(session, FLAGS.logDir + "PMN-", global_step=i)
 
             tqdm.write('max step %d, max valid %.3f' % (max_step, max_valid))
             tqdm.write('total time takes %.4f' % (time.time() - start_time))

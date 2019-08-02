@@ -14,6 +14,16 @@ import tensorflow as tf
 
 import reader_pointer_original as reader
 
+def variable_summaries(var, name):
+  with tf.name_scope(name):
+    mean = tf.reduce_mean(var)
+    tf.summary.scalar('mean', mean)
+    with tf.name_scope('stddev'):
+      stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+    tf.summary.scalar('stddev', stddev)
+    tf.summary.scalar('max', tf.reduce_max(var))
+    tf.summary.scalar('min', tf.reduce_min(var))
+    tf.summary.histogram('histogram', var)
 
 class PMNInput(object):
     """The input data."""
@@ -22,6 +32,8 @@ class PMNInput(object):
         self.batch_size = batch_size = config.batch_size
         self.attn_size = attn_size = config.attn_size
         self.num_steps = num_steps = config.num_steps
+        # shapes of input_dataN, targetsN, input_dataT, targetT is [batch_size, num_steps]
+        # epoch_size is (batch_len - 1) // num_steps
         self.input_dataN, self.targetsN, self.input_dataT, self.targetsT, self.epoch_size, self.eof_indicator = \
             reader.data_producer(data, batch_size, num_steps, config.vocab_size, config.attn_size, change_yT=False,
                                  name=name)
@@ -36,6 +48,7 @@ class PMN(object):
     """
 
     def __init__(self, is_training, config, input_, FLAGS):
+        self.is_training = is_training
         self._input = input_
         self.attn_size = attn_size = config.attn_size  # attention size
         batch_size = input_.batch_size
@@ -43,7 +56,7 @@ class PMN(object):
         self.sizeN = sizeN = config.hidden_sizeN  # embedding size of type(N)
         self.sizeT = sizeT = config.hidden_sizeT  # embedding size of value(T)
         self.size = size = config.sizeH  # hidden size of the lstm cell
-        (vocab_sizeN, vocab_sizeT) = config.vocab_size  # vocabulary size for type and value
+        (vocab_sizeN, vocab_sizeT) = config.vocab_size  # vocabulary size for type [w, eof] and value [w,eof,unk]
 
         def data_type():
             return tf.float16 if FLAGS.use_fp16 else tf.float32
@@ -74,7 +87,7 @@ class PMN(object):
         state_variables = []
         with tf.variable_scope("myCH0"):
             for i, (state_c, state_h) in enumerate(cell.zero_state(batch_size, data_type())):
-                if i > 0: tf.get_variable_scope().reuse_variables()
+                if i > 0 : tf.get_variable_scope().reuse_variables()
                 myC0 = tf.get_variable("myC0", state_c.shape[1], initializer=tf.zeros_initializer())
                 myH0 = tf.get_variable("myH0", state_h.shape[1], initializer=tf.zeros_initializer())
                 myC0_tensor = tf.convert_to_tensor([myC0 for _ in range(batch_size)])
@@ -138,17 +151,20 @@ class PMN(object):
         softmax_w = tf.get_variable("softmax_w", [size, vocab_sizeT], dtype=data_type())
         softmax_b = tf.get_variable("softmax_b", [vocab_sizeT], dtype=data_type())
         w_logits = tf.matmul(nt, softmax_w) + softmax_b
+        variable_summaries(w_logits, "WordDistribution")
 
         # compute l: reuse attention scores as the location distribution for pointer network
         l_logits_pre = tf.reshape(tf.stack(axis=1, values=alphas),
                                   [-1, attn_size])  # the size is batch_size*num_steps by attn_size
         l_logits = tf.reverse(l_logits_pre, axis=[1])
+        variable_summaries(l_logits, "PointerDistribution")
 
         # compute d: a switching network to balance the above two distributions, based on hidden states and context
         d_conditioned = tf.concat([output, attention], axis=1)
         d_w = tf.get_variable("d_w1", [2 * size, 1], dtype=data_type())
         d_b = tf.get_variable("d_b1", [1], dtype=data_type())
         d = tf.nn.sigmoid(tf.matmul(d_conditioned, d_w) + d_b)
+        variable_summaries(d, "NeuralSwitch")
 
         # concat w and l to construct f
         f_logits = tf.concat([w_logits * d, l_logits * (1 - d)], axis=1)
@@ -232,7 +248,7 @@ class PMN(object):
         return self._probs
 
 
-def run_epoch(session, model, writer, eval_op=None, verbose=False):
+def run_epoch(session, model, writer, n_epoch, eval_op=None, verbose=False):
     """Runs the model on the given data."""
     start_time = time.time()
     costs = 0.0
@@ -243,14 +259,18 @@ def run_epoch(session, model, writer, eval_op=None, verbose=False):
     eof_indicator = np.ones(model.input.batch_size, dtype=bool)
     memory = np.zeros([model.input.batch_size, model.input.num_steps, model.size])
 
+
     fetches = {
         "cost": model.cost,
         "accuracy": model.accuracy,
         "final_state": model.final_state,
         "eof_indicator": model.eof_indicator,
         "memory": model.output,
-        "summary": model.summary
     }
+
+    if model.is_training:
+        fetches["summary"] = model.summary
+
     if eval_op is not None:
         fetches["eval_op"] = eval_op
 
@@ -273,9 +293,11 @@ def run_epoch(session, model, writer, eval_op=None, verbose=False):
         eof_indicator = vals["eof_indicator"]
         state = vals["final_state"]  # use the final state as the initial state within a whole epoch
         memory = vals["memory"]
-        summary = vals["summary"]
 
-        writer.add_summary(summary)
+        if model.is_training:
+            summary = vals["summary"]
+            global_step = n_epoch*model.input.epoch_size + step
+            writer.add_summary(summary, global_step=global_step)
 
         accuracy_list.append(accuracy)
         costs += cost
