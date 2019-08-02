@@ -107,7 +107,7 @@ if __name__ == '__main__':
         max_step = 0
         saver = tf.train.Saver(tf.trainable_variables())
 
-        sv = tf.train.Supervisor(logdir='.log', summary_op=None)
+        sv = tf.train.Supervisor(logdir=None, summary_op=None)
         with sv.managed_session() as session:
             train_writer = tf.summary.FileWriter(FLAGS.logDir, graph=tf.get_default_graph())
 
