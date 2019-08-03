@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from pointerMixture import PMN, PMNInput
 from train import get_config
@@ -25,53 +26,70 @@ FLAGS = flags.FLAGS
 logging = tf.logging
 
 
-class recommender(object):
-    """
-    This class instantiates an PMN object from a checkpoint to predict next AST nodes for
-    python ASTs
-    """
-
-    def __init__(self):
-        pass
-
-    def predict_next(self):
-        train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = reader.input_data(
-            N_filename, T_filename)
-
-        train_data = (train_dataN, train_dataT)
-        valid_data = (valid_dataN, valid_dataT)
-        vocab_size = (vocab_sizeN + 1, vocab_sizeT + 2)  # N is [w, eof], T is [w, unk, eof]
-
-        config = get_config()
-        config.vocab_size = vocab_size
-        eval_config = get_config()
-        eval_config.batch_size = config.batch_size * config.num_steps
-        eval_config.num_steps = 1
-        eval_config.vocab_size = vocab_size
-
-        with tf.Graph().as_default():
-            initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
-
-            with tf.name_scope("Train"):
-                train_input = PMNInput(config=config, data=train_data, name="TrainInput", FLAGS=FLAGS)
-                with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                    m = PMN(is_training=True, config=config, input_=train_input, FLAGS=FLAGS)
-
-            train_vars = tf.trainable_variables()
-
-            saver = tf.train.Saver(train_vars)
-            sv = tf.train.Supervisor(logdir=None, summary_op=None)
-            with sv.managed_session() as session:
-                saver.restore(session, tf.train.latest_checkpoint('./logs'))
-                probs = m.probs
-                print(m.initial_state)
-                # session.run(predictions, feed_dict)
-                pass
+class configMin(object):
+    init_scale = 0.05
+    learning_rate = None
+    max_grad_norm = 5
+    num_layers = 1
+    num_steps = 50
+    attn_size = 50
+    hidden_sizeN = 300
+    hidden_sizeT = 500
+    sizeH = 800
+    max_epoch = 1
+    max_max_epoch = 1
+    keep_prob = 1.0
+    lr_decay = 0.6
+    batch_size = 2
 
 
 if __name__ == '__main__':
-    # train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = \
-    #    reader.input_data(N_filename, T_filename)
 
-    recomm = recommender()
-    recomm.predict_next()
+    cfg = configMin()
+    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = reader.input_data(
+        N_filename, T_filename)
+
+    train_data = (train_dataN, train_dataT)
+    valid_data = (valid_dataN, valid_dataT)
+    vocab_size = (vocab_sizeN + 1, vocab_sizeT + 2)  # N is [w, eof], T is [w, unk, eof]
+
+    cfg.vocab_size = vocab_size
+
+    with open(T_filename, 'rb') as f:
+        save = pickle.load(f)
+    reverse_dict = {value:key for key, value in save["terminal_dict"].items()}
+
+    with tf.Graph().as_default():
+        initializer = tf.random_uniform_initializer(-cfg.init_scale, cfg.init_scale)
+
+        with tf.name_scope("Recommender"):
+            recomm_input = PMNInput(config=cfg, data=train_data, name="RecommInput", FLAGS=FLAGS)
+            with tf.variable_scope("Model", reuse=None, initializer=initializer):
+                m = PMN(is_training=False, config=cfg, input_=recomm_input, FLAGS=FLAGS)
+
+        saver = tf.train.Saver(tf.trainable_variables())
+
+        sv = tf.train.Supervisor(logdir=None, summary_op=None)
+        with sv.managed_session() as session:
+            saver.restore(session, tf.train.latest_checkpoint('./logs/2019-08-02'))
+
+            state = session.run(m.initial_state)
+            eof_indicator = np.ones(m.input.batch_size, dtype=bool)
+            sub_cond = np.expand_dims(eof_indicator, axis=1)
+            condition = np.repeat(sub_cond, m.size, axis=1)
+
+            memory = np.zeros([m.input.batch_size, m.input.num_steps, m.size])
+
+            zero_state = session.run(m.initial_state)
+            feed_dict = {}
+
+            for i, (c, h) in enumerate(m.initial_state):
+                assert condition.shape == state[i].c.shape
+                feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
+                feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
+
+            feed_dict[m.memory] = memory
+            vals = session.run(m.probs, feed_dict)
+            predictions = np.argmax(vals, axis=1)
+            predictions = [reverse_dict[pred] for pred in predictions]
+            print(predictions)
