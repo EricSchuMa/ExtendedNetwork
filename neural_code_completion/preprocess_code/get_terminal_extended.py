@@ -44,11 +44,9 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                 hog_fail_total = 0
                 length_total = 0
                 line_index = 0
-                hog_id = unk_id + attn_size + 2
+                hog = unk_id + 1
                 for line, line_hog in zip(lines, lines_hog):
                     line_index += 1
-                    # if is_train and line_index == 11:
-                    #   continue
                     if line_index % 1000 == 0:
                         print('Processing line:', line_index)
                     data = json.loads(line)
@@ -70,19 +68,15 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                     if dic_value in attn_que:
                                         location_index = [len(attn_que)-ind for ind, x
                                                           in enumerate(attn_que) if x == dic_value][-1]
-                                        location_id = unk_id + 1 + location_index
+                                        location_id = unk_id + 2 + location_index  # [unk, hog_id, eof, loc_idx]
                                         terminal_line.append(location_id)
                                         attn_success_cnt += 1
-                                        if dic_value == dic_hog["value"]:
-                                            hog_success_cnt += 1
-                                        else:
-                                            hog_fail_cnt += 1
 
                                     else:
                                         attn_fail_cnt += 1
                                         if dic_value == dic_hog["value"]:
                                             hog_success_cnt += 1
-                                            terminal_line.append(hog_id)
+                                            terminal_line.append(hog)
                                         else:
                                             terminal_line.append(unk_id)
                                             failout.write('Prediction %s, GroundTruth %s \n'
