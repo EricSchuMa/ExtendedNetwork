@@ -9,20 +9,20 @@ import os
 
 import tensorflow as tf
 import numpy as np
-import reader_pointer_original as reader
+import reader_pointer_extended as reader
 
 from tqdm import tqdm
-from pointerMixture import PMN, PMNInput, run_epoch
+from extendedNetwork import EN, ENInput, run_epoch
 from config import SmallConfig, TestConfig, BestConfig
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 tf.logging.set_verbosity(tf.logging.FATAL)
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
-outfile = 'output_pointer.txt'
+outfile = './logs/output_extended.txt'
 
 N_filename = '../pickle_data/PY_non_terminal.pickle'
-T_filename = '../pickle_data/PY_terminal_1k_whole.pickle'
+T_filename = '../pickle_data/PY_terminal_1k_extended.pickle'
 
 flags = tf.flags
 flags.DEFINE_string("logDir", "./logs/" + str(datetime.date.today()) + "/", "logging directory")
@@ -39,7 +39,7 @@ FLAGS = flags.FLAGS
 logging = tf.logging
 
 if FLAGS.model == "test":
-    outfile = 'TESToutput.txt'
+    outfile = './logs/TESToutput.txt'
 
 def get_config():
     if FLAGS.model == "small":
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     train_data = (train_dataN, train_dataT)
     valid_data = (valid_dataN, valid_dataT)
-    vocab_size = (vocab_sizeN + 1, vocab_sizeT + 2)  # N is [w, eof], T is [w, unk, eof]
+    vocab_size = (vocab_sizeN + 1, vocab_sizeT + 3)  # N is [w, eof], T is [w, unk, hog_id, eof]
 
     config = get_config()
     assert attn_size == config.attn_size  # make sure the attn_size used in generate terminal is the same as the configuration
@@ -93,14 +93,14 @@ if __name__ == '__main__':
         initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
 
         with tf.name_scope("Train"):
-            train_input = PMNInput(config=config, data=train_data, name="TrainInput", FLAGS=FLAGS)
+            train_input = ENInput(config=config, data=train_data, name="TrainInput", FLAGS=FLAGS)
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                m = PMN(is_training=True, config=config, input_=train_input, FLAGS=FLAGS)
+                m = EN(is_training=True, config=config, input_=train_input, FLAGS=FLAGS)
 
         with tf.name_scope("Valid"):
-            valid_input = PMNInput(config=config, data=valid_data, name="ValidInput", FLAGS=FLAGS)
+            valid_input = ENInput(config=config, data=valid_data, name="ValidInput", FLAGS=FLAGS)
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mvalid = PMN(is_training=False, config=config, input_=valid_input, FLAGS=FLAGS)
+                mvalid = EN(is_training=False, config=config, input_=valid_input, FLAGS=FLAGS)
 
         print('total trainable variables', len(tf.trainable_variables()), '\n\n')
         max_valid = 0
@@ -109,6 +109,8 @@ if __name__ == '__main__':
 
         sv = tf.train.Supervisor(logdir=None, summary_op=None)
         with sv.managed_session() as session:
+            train_dataT = session.run(m._input.input_dataT)
+            train_target = np.reshape(session.run(m._input.targetsT), [-1])
             train_writer = tf.summary.FileWriter(FLAGS.logDir, graph=tf.get_default_graph())
 
             for i in tqdm(range(config.max_max_epoch)):

@@ -1,15 +1,15 @@
 import tensorflow as tf
 import numpy as np
 
-from pointerMixture import PMN, PMNInput
-from train import get_config
+from models.extendedNetwork import EN, ENInput
+from models.train import get_config
 from six.moves import cPickle as pickle
 
-import reader_pointer_original as reader
+import models.reader_pointer_extended as reader
 
 pickle_dir = '/home/max/ExtendedNetwork/code_completion_anonymous/pickle_data'
 N_filename = '../pickle_data/PY_non_terminal.pickle'
-T_filename = '../pickle_data/PY_terminal_1k_whole.pickle'
+T_filename = '../pickle_data/PY_terminal_1k_extended.pickle'
 
 flags = tf.flags
 # flags.DEFINE_string("save_path", './logs/modelPMN',
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     train_data = (train_dataN, train_dataT)
     valid_data = (valid_dataN, valid_dataT)
-    vocab_size = (vocab_sizeN + 1, vocab_sizeT + 2)  # N is [w, eof], T is [w, unk, eof]
+    vocab_size = (vocab_sizeN + 1, vocab_sizeT + 3)  # N is [w, eof], T is [w, unk, hog, eof]
 
     cfg.vocab_size = vocab_size
 
@@ -63,15 +63,15 @@ if __name__ == '__main__':
         initializer = tf.random_uniform_initializer(-cfg.init_scale, cfg.init_scale)
 
         with tf.name_scope("Recommender"):
-            recomm_input = PMNInput(config=cfg, data=train_data, name="RecommInput", FLAGS=FLAGS)
+            recomm_input = ENInput(config=cfg, data=train_data, name="RecommInput", FLAGS=FLAGS)
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                m = PMN(is_training=False, config=cfg, input_=recomm_input, FLAGS=FLAGS)
+                m = EN(is_training=False, config=cfg, input_=recomm_input, FLAGS=FLAGS)
 
         saver = tf.train.Saver(tf.trainable_variables())
 
         sv = tf.train.Supervisor(logdir=None, summary_op=None)
         with sv.managed_session() as session:
-            saver.restore(session, tf.train.latest_checkpoint('./logs/2019-08-02'))
+            saver.restore(session, tf.train.latest_checkpoint('./logs/2019-08-07'))
 
             state = session.run(m.initial_state)
             eof_indicator = np.ones(m.input.batch_size, dtype=bool)

@@ -4,7 +4,7 @@ import numpy as np
 from six.moves import cPickle as pickle
 from preprocess_code.get_terminal_extended import save, process
 from preprocess_code.get_terminal_whole import restore_terminal_dict
-import code.reader_pointer_extended as reader
+import models.reader_pointer_extended as reader
 
 
 class TestGetTerminalExtended(unittest.TestCase):

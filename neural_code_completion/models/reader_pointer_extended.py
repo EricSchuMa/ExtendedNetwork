@@ -1,6 +1,6 @@
 # Yue revise it on 08/15
 # Add attn_size in input_data, data_producer; add change_yT for indicating whether to remove the location of unk(just label it as unk)
-# refactor the code of contructing the long line (def padding_and_concat)
+# refactor the models of contructing the long line (def padding_and_concat)
 
 from __future__ import absolute_import
 from __future__ import division
@@ -60,7 +60,8 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         (vocab_sizeN, vocab_sizeT) = vocab_size
         eof_N_id = vocab_sizeN - 1
         eof_T_id = vocab_sizeT - 1
-        unk_id = vocab_sizeT - 2
+        unk_id = vocab_sizeT - 3
+        hog_id = vocab_sizeT - 2
 
         def padding_and_concat(data, width, pad_id):
             # the size of data: a list of list. This function will pad the data according to width
@@ -103,8 +104,9 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         long_lineT_truncated_y = np.array(long_lineT[0 : n * (batch_size * num_steps)])
 
         location_index = long_lineT_truncated_x > eof_T_id
-
+        hog_index = long_lineT_truncated_x == hog_id
         long_lineT_truncated_x[location_index] = unk_id
+        long_lineT_truncated_x[hog_index] = unk_id
         if change_yT:
             long_lineT_truncated_y[location_index] = unk_id
 
@@ -151,7 +153,7 @@ if __name__ == '__main__':
     train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = input_data(N_filename, T_filename)
     train_data = (train_dataN, train_dataT)
     valid_data = (valid_dataN, valid_dataT)
-    vocab_size = (vocab_sizeN+1, vocab_sizeT+2) # N is [w, eof], T is [w, unk, eof]
+    vocab_size = (vocab_sizeN+1, vocab_sizeT+3) # N is [w, eof], T is [w, unk, hog_id, eof]
     input_dataN, targetsN, input_dataT, targetsT, epoch_size, eof_indicator = \
         data_producer(train_data, batch_size=128, num_steps=50, vocab_size=vocab_size, attn_size=attn_size, change_yT=False, name='train', verbose=False)
     input_dataN1, targetsN1, input_dataT1, targetsT1, epoch_size1, eof_indicator1 = \

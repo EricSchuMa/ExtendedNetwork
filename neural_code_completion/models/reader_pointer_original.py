@@ -1,6 +1,6 @@
-# xxx revise it on 01/09, add parent
+# Yue revise it on 08/15
 # Add attn_size in input_data, data_producer; add change_yT for indicating whether to remove the location of unk(just label it as unk)
-# refactor the code of contructing the long line (def padding_and_concat)
+# refactor the models of contructing the long line (def padding_and_concat)
 
 from __future__ import absolute_import
 from __future__ import division
@@ -11,19 +11,16 @@ from six.moves import cPickle as pickle
 import tensorflow as tf
 import numpy as np
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
-
+os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 
 def input_data(N_filename, T_filename):
     """
-    Loads the pickle files for non-terminals and terminals into memory
-    :param N_filename: pickle file containing the training, testing-data
-                       and Information about parents + vocab size for non-terminals
-    :param T_filename: pickle file containing the training and testing-data for terminals, and atn_size and vocab_size
-                       they were created with
-    :return: contents of the pickle dictionaries
+    Read data from ID format
+    :param N_filename: contains the IDs for the types of each node including sibling and children information
+    :param T_filename: contains the terminal_dict and IDs for every node. unk keyword if ID isn't available
+    :return: training and testing data, including vocab_sizes and attn_size (important for terminal)
     """
     start_time = time.time()
     with open(N_filename, 'rb') as f:
@@ -31,8 +28,6 @@ def input_data(N_filename, T_filename):
         save = pickle.load(f)
         train_dataN = save['trainData']
         test_dataN = save['testData']
-        train_dataP = save['trainParent']
-        test_dataP = save['testParent']
         vocab_sizeN = save['vocab_size']
         print('the vocab_sizeN is %d (not including the eof)' %vocab_sizeN)
         print('the number of training data is %d' %(len(train_dataN)))
@@ -45,31 +40,21 @@ def input_data(N_filename, T_filename):
         test_dataT = save['testData']
         vocab_sizeT = save['vocab_size']
         attn_size = save['attn_size']
-        print('the vocab_sizeT is %d (not including the unk and eof)' % vocab_sizeT)
-        print('the attn_size is %d' % attn_size)
+        print('the vocab_sizeT is %d (not including the unk and eof)' %vocab_sizeT)
+        print('the attn_size is %d' %attn_size)
         print('the number of training data is %d' %(len(train_dataT)))
         print('the number of test data is %d' %(len(test_dataT)))
         print('Finish reading data and take %.2f\n'%(time.time()-start_time))
 
-    return train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size, train_dataP, test_dataP
+    return train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size
 
 
 def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change_yT=False, name=None, verbose=False):
-    """
-    :param raw_data: data from input_data: consisting of N, T and P
-    :param batch_size: number of samples to produce in each step
-    :param num_steps: the number of steps in one RNN pass-through
-    :param vocab_size: T and N vocab sizes according to data pre-processing (+1 for added eof-token)
-    :param attn_size: size of attn-window predefined through pre-processing
-    :param change_yT:
-    :param name: Optional name_scope parameter for tensorflow
-    :param verbose: whether to show data statistics or not
-    :return:
-    """
+
     start_time = time.time()
 
     with tf.name_scope(name, "DataProducer", [raw_data, batch_size, num_steps, vocab_size]):
-        (raw_dataN, raw_dataT, raw_dataP) = raw_data
+        (raw_dataN, raw_dataT) = raw_data
         assert len(raw_dataN) == len(raw_dataT)
 
         (vocab_sizeN, vocab_sizeT) = vocab_size
@@ -78,7 +63,7 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         unk_id = vocab_sizeT - 2
 
         def padding_and_concat(data, width, pad_id):
-            #the size of data: a list of list. This function will pad the data according to width
+            # the size of data: a list of list. This function will pad the data according to width
             long_line = list()
             for line in data:
                 pad_len = width - (len(line) % width)
@@ -90,9 +75,8 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         pad_start = time.time()
         long_lineN = padding_and_concat(raw_dataN, num_steps, pad_id=eof_N_id)
         long_lineT = padding_and_concat(raw_dataT, num_steps, pad_id=eof_T_id)
-        long_lineP = padding_and_concat(raw_dataP, num_steps, pad_id=1)
         assert len(long_lineN) == len(long_lineT)
-        print('Pading three long lines and take %.2fs'%(time.time()-pad_start))
+        print('Pading two long lines and take %.2fs'%(time.time()-pad_start))
 
         # print statistics for long_lineT
         if verbose:
@@ -112,16 +96,14 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
             print('print verbose information and take %.2fs\n'%(time.time()-verbose_start))
 
         temp_len = len(long_lineN)
+        # print ('\nthe original data length is %d' %temp_len)
         n = temp_len // (batch_size * num_steps)
         long_lineN_truncated = np.array(long_lineN[0 : n * (batch_size * num_steps)])
-        long_lineP_truncated = np.array(long_lineP[0 : n * (batch_size * num_steps)])
         long_lineT_truncated_x = np.array(long_lineT[0 : n * (batch_size * num_steps)])
         long_lineT_truncated_y = np.array(long_lineT[0 : n * (batch_size * num_steps)])
 
-        # long_lineP_truncated[long_lineP_truncated > attn_size] = attn_size  #if the parent location is too far
-        long_lineP_truncated = [long_lineN_truncated[i-j] for i, j in enumerate(long_lineP_truncated)] #only store parent N
-
         location_index = long_lineT_truncated_x > eof_T_id
+
         long_lineT_truncated_x[location_index] = unk_id
         if change_yT:
             long_lineT_truncated_y[location_index] = unk_id
@@ -129,7 +111,6 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         # print('count of greater than eof', sum(long_lineT_truncated_y > eof_T_id))
 
         tf_dataN = tf.convert_to_tensor(long_lineN_truncated, name="raw_dataN", dtype=tf.int32)
-        tf_dataP = tf.convert_to_tensor(long_lineP_truncated, name="raw_dataP", dtype=tf.int32)
         tf_dataT_x = tf.convert_to_tensor(long_lineT_truncated_x, name="raw_dataT_x", dtype=tf.int32)
         tf_dataT_y = tf.convert_to_tensor(long_lineT_truncated_y, name="raw_dataT_y", dtype=tf.int32)
 
@@ -137,11 +118,10 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         batch_len = data_len // batch_size
         # print ('the total data length is %d, batch_len is %d\n ' %(data_len, batch_len))
         dataN = tf.reshape(tf_dataN[0 : batch_size * batch_len], [batch_size, batch_len])
-        dataP = tf.reshape(tf_dataP[0 : batch_size * batch_len], [batch_size, batch_len])
         dataT_x = tf.reshape(tf_dataT_x[0 : batch_size * batch_len], [batch_size, batch_len])
         dataT_y = tf.reshape(tf_dataT_y[0 : batch_size * batch_len], [batch_size, batch_len])
 
-        epoch_size = (batch_len - 1) // num_steps  # how many batches to complete a epoch
+        epoch_size = (batch_len - 1) // num_steps
         assert epoch_size > 0
         i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
         per_start = time.time()
@@ -159,31 +139,23 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
                               [batch_size, (i + 1) * num_steps + 1])
         yT.set_shape([batch_size, num_steps])
 
-        xP = tf.strided_slice(dataP, [0, i * num_steps],
-                              [batch_size, (i + 1) * num_steps])
-        xP.set_shape([batch_size, num_steps])
-
         eof_indicator = tf.equal(xN[:, num_steps - 1], tf.constant([eof_N_id]*batch_size))
-        print('Finish preparing input producer and takes %.2fs' % (time.time()-start_time))
-        print('Each produce data takes time %.2f\n' % (time.time()-per_start))
-        return xN, yN, xT, yT, epoch_size, eof_indicator, xP
-
+        print('Finish preparing input producer and takes %.2fs' %(time.time()-start_time))
+        print('Each produce data takes time %.2f\n' %(time.time()-per_start))
+        return xN, yN, xT, yT, epoch_size, eof_indicator
 
 if __name__ == '__main__':
-    N_filename = '../pickle_data/PY_non_terminal.pickle'
-    T_filename = '../pickle_data/PY_terminal_1k_whole.pickle'
+    N_filename = '../pickle_data/JS_non_terminal.pickle'
+    T_filename = '../pickle_data/JS_terminal_50k_whole.pickle'
 
-    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size, train_dataP, valid_dataP \
-        = input_data(N_filename, T_filename)
-
-    train_data = (train_dataN, train_dataT, train_dataP)
-    valid_data = (valid_dataN, valid_dataT, valid_dataP)
+    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = input_data(N_filename, T_filename)
+    train_data = (train_dataN, train_dataT)
+    valid_data = (valid_dataN, valid_dataT)
     vocab_size = (vocab_sizeN+1, vocab_sizeT+2) # N is [w, eof], T is [w, unk, eof]
-
-    input_dataN, targetsN, input_dataT, targetsT, epoch_size, eof_indicator, input_dataP = \
+    input_dataN, targetsN, input_dataT, targetsT, epoch_size, eof_indicator = \
         data_producer(train_data, batch_size=128, num_steps=50, vocab_size=vocab_size, attn_size=attn_size, change_yT=False, name='train', verbose=False)
-    # input_dataN1, targetsN1, input_dataT1, targetsT1, epoch_size1, eof_indicator1 = \
-    #     data_producer(valid_data, batch_size=128, num_steps=50, vocab_size=vocab_size, attn_size=attn_size, change_yT=False, name='test', verbose=False)
+    input_dataN1, targetsN1, input_dataT1, targetsT1, epoch_size1, eof_indicator1 = \
+        data_producer(valid_data, batch_size=128, num_steps=50, vocab_size=vocab_size, attn_size=attn_size, change_yT=False, name='test', verbose=False)
 
     labels = tf.reshape(targetsT, [-1])
     eof_id = vocab_size[1] -1
@@ -191,7 +163,7 @@ if __name__ == '__main__':
     fetches = {
         "labels":labels,
         "loss_condition":loss_condition,}
-    # sess = tf.Session()  #there is no graph to run
+    # sess = tf.Session()
     # vals = sess.run(fetches)
     # labels_np = vals["labels"]
     # loss_condition_np = vals["loss_condition"]

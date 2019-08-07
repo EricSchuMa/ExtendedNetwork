@@ -12,7 +12,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-import reader_pointer_original as reader
+import models.reader_pointer_extended as reader
 
 def variable_summaries(var, name):
   with tf.name_scope(name):
@@ -25,7 +25,7 @@ def variable_summaries(var, name):
     tf.summary.scalar('min', tf.reduce_min(var))
     tf.summary.histogram('histogram', var)
 
-class PMNInput(object):
+class ENInput(object):
     """The input data."""
 
     def __init__(self, config, data, name=None, FLAGS=None):
@@ -41,7 +41,7 @@ class PMNInput(object):
             self.epoch_size = 16  # small epoch size for test
 
 
-class PMN(object):
+class EN(object):
     """
     This class builds a lstm model with neural attention and a pointer Network which
     work together to predict next word in an AST
