@@ -7,9 +7,9 @@ from collections import Counter
 import time
 
 # attention line 28: for python dataset, not exclude the last one
-train_filename = '../json_data/programs_training.json'
-test_filename = '../json_data/programs_eval.json'
-target_filename = '../pickle_data/freq_dict_JS.pickle'
+train_filename = '../../data/python_train.json'
+test_filename = '../../data/python_dev.json'
+target_filename = '../pickle_data/freq_dict_PY_train_dev.pickle'
 
 freq_dict = Counter()
 terminal_num = set()

@@ -6,10 +6,10 @@ import json
 from collections import Counter
 import operator
 
-vocab_size = 10000
+vocab_size = 50000
 total_length = 92758587  # JS: 160143814, PY 92758587
-freq_dict_filename = '../pickle_data/freq_dict_PY.pickle'
-target_filename = '../pickle_data/terminal_dict_3k_PY.pickle'
+freq_dict_filename = '../pickle_data/freq_dict_PY_train_dev.pickle'
+target_filename = '../pickle_data/terminal_dict_50k_PY_train_dev.pickle'
 
 
 def restore_freq_dict(filename):

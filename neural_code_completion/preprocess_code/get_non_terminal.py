@@ -7,9 +7,9 @@ import time
 from collections import Counter, defaultdict
 
 # attention line 42: for python dataset, not exclude the last one
-train_filename = '../../data/python100k_train.json'
-test_filename = '../../data/python50k_eval.json'
-target_filename = '../pickle_data/PY_non_terminal_small.pickle'
+train_filename = '../../data/python_train.json'
+test_filename = '../../data/python_dev.json'
+target_filename = '../pickle_data/PY_non_terminal_dev.pickle'
 
 # global variables
 typeDict = dict()  # map N's name into its original ID(before expanding into 4*base_ID)

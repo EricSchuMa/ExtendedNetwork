@@ -12,12 +12,12 @@ import time
 
 from preprocess_code.get_terminal_whole import restore_terminal_dict
 
-terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY.pickle'
-train_filename = '../../data/python100k_train.json'
-trainHOG_filename = '../../data/phog_pred_25k_train.json'
-test_filename = '../../data/python50k_eval.json'
-testHOG_filename = '../../data/phog_pred_25k_eval.json'
-target_filename = '../pickle_data/PY_terminal_1k_extended_25k.pickle'
+terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
+train_filename = '../../data/python_train.json'
+trainHOG_filename = '../../data/phog_train.json'
+test_filename = '../../data/python_dev.json'
+testHOG_filename = '../../data/phog_dev.json'
+target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
 
 
 def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=False):
