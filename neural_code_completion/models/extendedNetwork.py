@@ -14,16 +14,18 @@ import tensorflow as tf
 
 import reader_pointer_extended as reader
 
+
 def variable_summaries(var, name):
-  with tf.name_scope(name):
-    mean = tf.reduce_mean(var)
-    tf.summary.scalar('mean', mean)
-    with tf.name_scope('stddev'):
-      stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-    tf.summary.scalar('stddev', stddev)
-    tf.summary.scalar('max', tf.reduce_max(var))
-    tf.summary.scalar('min', tf.reduce_min(var))
-    tf.summary.histogram('histogram', var)
+    with tf.name_scope(name):
+        mean = tf.reduce_mean(var)
+        tf.summary.scalar('mean', mean)
+        with tf.name_scope('stddev'):
+            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+        tf.summary.scalar('stddev', stddev)
+        tf.summary.scalar('max', tf.reduce_max(var))
+        tf.summary.scalar('min', tf.reduce_min(var))
+        tf.summary.histogram('histogram', var)
+
 
 class ENInput(object):
     """The input data."""
@@ -44,7 +46,7 @@ class ENInput(object):
 class EN(object):
     """
     This class builds a lstm model with neural attention and a pointer Network which
-    work together to predict next word in an AST
+    work together with PHOG to predict next node values in ASTs
     """
 
     def __init__(self, is_training, config, input_, FLAGS):

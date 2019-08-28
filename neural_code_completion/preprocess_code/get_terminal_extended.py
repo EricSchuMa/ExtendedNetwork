@@ -10,14 +10,14 @@ from collections import deque
 import json
 import time
 
-from .get_terminal_whole import restore_terminal_dict
+from preprocess_code.get_terminal_whole import restore_terminal_dict
 
 terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY.pickle'
 train_filename = '../../data/python100k_train.json'
-trainHOG_filename = '../../data/phog_pred_100k_train.json'
+trainHOG_filename = '../../data/phog_pred_25k_train.json'
 test_filename = '../../data/python50k_eval.json'
-testHOG_filename = '../../data/phog_pred_50k_eval.json'
-target_filename = '../pickle_data/PY_terminal_1k_extended.pickle'
+testHOG_filename = '../../data/phog_pred_25k_eval.json'
+target_filename = '../pickle_data/PY_terminal_1k_extended_25k.pickle'
 
 
 def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=False):
@@ -101,14 +101,16 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                    float(attn_success_total)/length_total,
                                    float(attn_total)/length_total))
                 with open('output.txt', 'a') as fout:
+                    fout.write('New Experiment: terminal dict = %s, hog files are %s , %s \n' %
+                               (terminal_dict_filename, trainHOG_filename, testHOG_filename))
                     fout.write('Statistics: attn_success_total: %d, attn_fail_total: %d, success/fail: %.4f,'
                                ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
                                (attn_success_total, attn_fail_total,
                                 float(attn_success_total)/attn_fail_total, length_total,
                                 float(attn_success_total)/length_total,
                                 float(attn_total)/length_total))
-                    fout.write('Statistics: hog_success_total: %d, hog_fail_total: %d, success/fail: %.4f,'
-                               ' length_total: %d, hog_success percentage: %.4f, total unk percentage: %.4f\n' %
+                    fout.write('\n Statistics: hog_success_total: %d, hog_fail_total: %d, success/fail: %.4f,'
+                               ' length_total: %d, hog_success percentage: %.4f, total unk percentage: %.4f\n \n' %
                                (hog_success_total, hog_fail_total,
                                 float(hog_success_total) / hog_fail_total, length_total,
                                 float(hog_success_total) / length_total,
