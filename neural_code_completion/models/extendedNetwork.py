@@ -12,7 +12,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-import models.reader_pointer_extended as reader
+import reader_pointer_extended as reader
 
 
 def variable_summaries(var, name):
@@ -175,7 +175,7 @@ class EN(object):
         weights = tf.ones([batch_size * num_steps], dtype=data_type())
 
         # set mask for counting unk as wrong
-        unk_id = vocab_sizeT - 2
+        unk_id = vocab_sizeT - 3
         unk_tf = tf.constant(value=unk_id, dtype=tf.int32, shape=self.labels.shape)
         zero_weights = tf.zeros_like(self.labels, dtype=data_type())
         wrong_label = tf.constant(value=-1, dtype=tf.int32, shape=self.labels.shape)

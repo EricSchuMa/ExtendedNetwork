@@ -19,17 +19,17 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 tf.logging.set_verbosity(tf.logging.FATAL)
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
-outfile = './logs/output_extended.txt'
+outfile = './logs/output_extended_dev.txt'
 
-N_filename = '../pickle_data/PY_non_terminal.pickle'
-T_filename = '../pickle_data/PY_terminal_1k_extended.pickle'
+N_filename = '../pickle_data/PY_non_terminal_dev.pickle'
+T_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
 
 flags = tf.flags
 flags.DEFINE_string("logDir", "./logs/" + str(datetime.date.today()) + "/", "logging directory")
 
 
 flags.DEFINE_string(
-    "model", "test",
+    "model", "best",
     "A type of model. Possible options are: small, medium, best.")
 
 
@@ -127,15 +127,15 @@ if __name__ == '__main__':
                     "Epoch: %d Train Perplexity: %.3f Train Accuracy: %.3f" % (i + 1, train_perplexity, train_accuracy),
                     file=fout)
 
-                if i > 0:
-                    valid_perplexity, valid_accuracy = run_epoch(session, mvalid, train_writer, i)
-                    tqdm.write("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
-                    i + 1, valid_perplexity, valid_accuracy))
-                    print("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
-                    i + 1, valid_perplexity, valid_accuracy), file=fout)
-                    if valid_accuracy > max_valid:
-                        max_valid = valid_accuracy
-                        max_step = i + 1
+                
+                valid_perplexity, valid_accuracy = run_epoch(session, mvalid, train_writer, i)
+                tqdm.write("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
+                i + 1, valid_perplexity, valid_accuracy))
+                print("Epoch: %d Valid Perplexity: ~~%.3f Valid Accuracy: %.3f~" % (
+                i + 1, valid_perplexity, valid_accuracy), file=fout)
+                if valid_accuracy > max_valid:
+                    max_valid = valid_accuracy
+                    max_step = i + 1
 
 
                 tqdm.write("Saving model to %s." % FLAGS.logDir)
