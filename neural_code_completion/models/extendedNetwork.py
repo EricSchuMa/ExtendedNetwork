@@ -12,7 +12,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-import reader_pointer_extended as reader
+import models.reader_pointer_extended as reader
 
 
 def variable_summaries(var, name):
@@ -183,6 +183,14 @@ class EN(object):
         new_weights = tf.where(condition_tf, zero_weights, weights)
         new_labels = tf.where(condition_tf, wrong_label, self.labels)
 
+        if config.hogWeight != 1.0:
+            hog_id = vocab_sizeT - 2
+            hog_tf = tf.constant(value=hog_id, dtype=tf.int32, shape=self.labels.shape)
+            condition_hog = tf.equal(self.labels, hog_tf)
+            hog_weight = tf.constant(value=config.hogWeight, dtype=data_type(), shape=self.labels.shape)
+            new_weights = tf.where(condition_hog, hog_weight, new_weights)
+
+        self.weights = new_weights
         loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example([f_logits], [self.labels], [new_weights])
         self._probs = tf.nn.softmax(f_logits)
 

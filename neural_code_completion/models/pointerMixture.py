@@ -12,7 +12,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-import reader_pointer_original as reader
+import models.reader_pointer_original as reader
 
 def variable_summaries(var, name):
   with tf.name_scope(name):
@@ -169,19 +169,19 @@ class PMN(object):
         # concat w and l to construct f
         f_logits = tf.concat([w_logits * d, l_logits * (1 - d)], axis=1)
 
-        labels = tf.reshape(input_.targetsT, [-1])
+        self.labels = tf.reshape(input_.targetsT, [-1])
         weights = tf.ones([batch_size * num_steps], dtype=data_type())
 
         # set mask for counting unk as wrong
         unk_id = vocab_sizeT - 2
-        unk_tf = tf.constant(value=unk_id, dtype=tf.int32, shape=labels.shape)
-        zero_weights = tf.zeros_like(labels, dtype=data_type())
-        wrong_label = tf.constant(value=-1, dtype=tf.int32, shape=labels.shape)
-        condition_tf = tf.equal(labels, unk_tf)
+        unk_tf = tf.constant(value=unk_id, dtype=tf.int32, shape=self.labels.shape)
+        zero_weights = tf.zeros_like(self.labels, dtype=data_type())
+        wrong_label = tf.constant(value=-1, dtype=tf.int32, shape=self.labels.shape)
+        condition_tf = tf.equal(self.labels, unk_tf)
         new_weights = tf.where(condition_tf, zero_weights, weights)
-        new_labels = tf.where(condition_tf, wrong_label, labels)
+        new_labels = tf.where(condition_tf, wrong_label, self.labels)
 
-        loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example([f_logits], [labels], [new_weights])
+        loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example([f_logits], [self.labels], [new_weights])
         self._probs = tf.nn.softmax(f_logits)
 
         correct_prediction = tf.equal(tf.cast(tf.argmax(self._probs, 1), dtype=tf.int32), new_labels)

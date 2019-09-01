@@ -51,6 +51,7 @@ class BestConfig(object):
     lr_decay = 0.6
     batch_size = 128
 
+
 class ExperimentalConfig(object):
     """Intermediate config used for experiments."""
     init_scale = 0.05
@@ -67,3 +68,4 @@ class ExperimentalConfig(object):
     keep_prob = 0.6
     lr_decay = 0.6
     batch_size = 128
+    hogWeight = 2
