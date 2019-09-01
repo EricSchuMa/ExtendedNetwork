@@ -13,7 +13,7 @@ import reader_pointer_extended as reader
 
 from tqdm import tqdm
 from extendedNetwork import EN, ENInput, run_epoch
-from config import SmallConfig, TestConfig, BestConfig
+from config import SmallConfig, TestConfig, BestConfig, ExperimentalConfig
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 tf.logging.set_verbosity(tf.logging.FATAL)
@@ -29,7 +29,7 @@ flags.DEFINE_string("logDir", "./logs/" + str(datetime.date.today()) + "/", "log
 
 
 flags.DEFINE_string(
-    "model", "best",
+    "model", "experimental",
     "A type of model. Possible options are: small, medium, best.")
 
 
@@ -48,6 +48,8 @@ def get_config():
         return TestConfig()
     elif FLAGS.model == "best":
         return BestConfig()
+    elif FLAGS.model == "experimental":
+        return ExperimentalConfig()
     else:
         raise ValueError("Invalid model: %s", FLAGS.model)
 

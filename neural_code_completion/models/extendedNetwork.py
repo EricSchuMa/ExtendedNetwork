@@ -12,7 +12,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-import models.reader_pointer_extended as reader
+import reader_pointer_extended as reader
 
 
 def variable_summaries(var, name):

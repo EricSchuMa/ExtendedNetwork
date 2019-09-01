@@ -57,7 +57,7 @@ class ExperimentalConfig(object):
     init_scale = 0.05
     learning_rate = 0.001
     max_grad_norm = 5
-    num_layers = 1
+    num_layers = 2
     num_steps = 50
     attn_size = 50
     hidden_sizeN = 300
@@ -65,7 +65,7 @@ class ExperimentalConfig(object):
     sizeH = 1500
     max_epoch = 1
     max_max_epoch = 8
-    keep_prob = 0.6
+    keep_prob = 0.8
     lr_decay = 0.6
     batch_size = 128
-    hogWeight = 2
+    hogWeight = 1.5
