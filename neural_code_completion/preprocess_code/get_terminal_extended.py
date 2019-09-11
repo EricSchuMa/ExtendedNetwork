@@ -13,9 +13,9 @@ import time
 from preprocess_code.get_terminal_whole import restore_terminal_dict
 
 terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
-train_filename = '../../data/python_train.json'
+train_filename = '../../data/python90k_train.json'
 trainHOG_filename = '../../data/phog_train.json'
-test_filename = '../../data/python_dev.json'
+test_filename = '../../data/python10k_dev.json'
 testHOG_filename = '../../data/phog_dev.json'
 target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
 

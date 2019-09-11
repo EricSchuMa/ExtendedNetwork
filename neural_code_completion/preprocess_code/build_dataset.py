@@ -24,11 +24,11 @@ def create_train_dev_split(filename, destination, ratio=0.9, seed=42):
         data_dev = [data[idx] for idx in indices_dev]
 
         # save into files
-        filename_train = destination + "python_train.json"
+        filename_train = destination + "python90k_train.json"
         with open(filename_train, "w") as fout_train:
             fout_train.writelines(data_train)
 
-        filename_dev = destination + "python_dev.json"
+        filename_dev = destination + "python10k_dev.json"
         with open(filename_dev, "w") as fout_dev:
             fout_dev.writelines(data_dev)
 

@@ -7,8 +7,8 @@ import time
 from collections import Counter, defaultdict
 
 # attention line 42: for python dataset, not exclude the last one
-train_filename = '../../data/python_train.json'
-test_filename = '../../data/python_dev.json'
+train_filename = '../../data/python90k_train.json'
+test_filename = '../../data/python10k_dev.json'
 target_filename = '../pickle_data/PY_non_terminal_dev.pickle'
 
 # global variables

@@ -7,8 +7,8 @@ from collections import Counter
 import time
 
 # attention line 28: for python dataset, not exclude the last one
-train_filename = '../../data/python_train.json'
-test_filename = '../../data/python_dev.json'
+train_filename = '../../data/python90k_train.json'
+test_filename = '../../data/python10k_dev.json'
 target_filename = '../pickle_data/freq_dict_PY_train_dev.pickle'
 
 freq_dict = Counter()
