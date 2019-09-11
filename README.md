@@ -1,5 +1,5 @@
 # Extended Network: Combining deep learning and statistical language models
-This repository holds code Extended Network, Pointer-Mixture network and PHOG.
+This repository holds code for Extended Network, Pointer-Mixture network and PHOG.
 
 ## Introduction
 
