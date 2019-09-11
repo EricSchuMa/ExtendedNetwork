@@ -15,7 +15,7 @@ python3 setup.py
 
 ## Description of the directories
 
-### neural_code_completion/models
+#### neural_code_completion/models
 Holds the different models and dataloaders:
 - config.py: holds the configurations for Pointer-Mixture and Extended Network
 - extendedNetwork.py: class defining the Extended Network
@@ -25,7 +25,7 @@ Holds the different models and dataloaders:
 - train_extended.py: trains the Extended Network
 - train_pointer_mixture.py: trains the Pointer-Mixture network
 
-### neural_code_completion/preprocess_code
+#### neural_code_completion/preprocess_code
 Data pre-processing consists of turning ASTs into IDs and saving them along with metadata into pickle files
 - build_dataset.py: creates the train development data-set (random seed 42 to reproduce our data-set)
 - freq_dict.py: creates the frequency dictionary used for creating the terminal vocabulary
@@ -33,3 +33,14 @@ Data pre-processing consists of turning ASTs into IDs and saving them along with
 - get_terminal_extended.py: creates the terminal corpus for the Extended Network
 - get_terminal_original.py: creates the terminal corpus for the Pointer-Mixture network
 - get_total_length.py, utils.py: utilities and helper functions
+
+## Training Extended Network
+To train Extended Network first create the pickle files with the pre-processing code located in neural_code_completion/preprocess_code. Alternatively download the pre-processed pickle files with:
+```python
+python3 download_pickle_data.py
+```
+Thereafter set custom flags in train_extended.py or change the used configuration in config.py.
+Then simply run:
+```python
+python3 train_extended.py
+```
