@@ -80,7 +80,6 @@ int main(int argc, char** argv){
   accuracies["type"] /= num_asts;
   accuracies["value"] /= num_asts;
 
-  // both files should contain the same number of asts
   std::cout << "\nAccuracy value = " << accuracies["value"]
   << "\nAccuracy type = " << accuracies["type"];
 
@@ -88,5 +87,4 @@ int main(int argc, char** argv){
   assert(accuracies["type"] > 0.8);
   assert(accuracies["value"] > 0.6);
   std::cout << "\nAll tests passed";
-
 }
