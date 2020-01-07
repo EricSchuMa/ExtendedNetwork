@@ -13,6 +13,11 @@ To train and evalute this Extended Network we used the 150k Python data-set from
 python3 setup.py
 ```
 
+Then run the following command at the folder "neural_code_completion\preprocess_code":
+```python
+python3 build_dataset.py
+```
+
 ## Description of the directories
 
 #### neural_code_completion/models
@@ -35,10 +40,8 @@ Data pre-processing consists of turning ASTs into IDs and saving them along with
 - get_total_length.py, utils.py: utilities and helper functions
 
 ## Training Extended Network
-To train Extended Network first create the pickle files with the pre-processing code located in neural_code_completion/preprocess_code. Alternatively download the pre-processed pickle files with:
-```python
-python3 download_pickle_data.py
-```
+To train Extended Network first create the pickle files with the pre-processing code located in neural_code_completion/preprocess_code. Alternatively download the pre-processed pickle files here: [pickle_data](https://drive.google.com/open?id=1PJ-rOMOOT7KzaM203Shs-X2EE-oFv-r0). The pickle files should be put under the folder "neural_code_completion\pickle_data"
+
 Thereafter set custom flags in train_extended.py or change the used configuration in config.py.
 Then simply run:
 ```python
