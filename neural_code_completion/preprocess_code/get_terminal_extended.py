@@ -10,7 +10,8 @@ from collections import deque
 import json
 import time
 
-from preprocess_code.get_terminal_whole import restore_terminal_dict
+from neural_code_completion.preprocess_code.get_terminal_original import restore_terminal_dict
+#from preprocess_code.get_terminal_whole import restore_terminal_dict
 
 terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
 train_filename = '../../data/python90k_train.json'
