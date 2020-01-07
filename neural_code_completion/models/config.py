@@ -32,6 +32,7 @@ class TestConfig(object):
     keep_prob = 1.0
     lr_decay = 0.6
     batch_size = 1
+    hogWeight = 1.5  # copied from ExperimentalConfig
 
 
 class BestConfig(object):

@@ -29,7 +29,7 @@ flags.DEFINE_string("logDir", "./logs/" + str(datetime.date.today()) + "/", "log
 
 
 flags.DEFINE_string(
-    "model", "experimental",
+    "model", "test",
     "A type of model. Possible options are: small, medium, best.")
 
 
@@ -70,7 +70,7 @@ def variable_summaries(var):
 
 if __name__ == '__main__':
     start_time = time.time()
-    fout = open(outfile, 'a')
+    fout = open(outfile, 'a+')
     print('\n', time.asctime(time.localtime()), file=fout)
     print('start a new experiment %s' % outfile, file=fout)
     print('Using dataset %s and %s' % (N_filename, T_filename), file=fout)
