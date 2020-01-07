@@ -1,8 +1,15 @@
-data
+# allow to upload data folder
+# data
+
 **idea
 **__pycache__
-**pickle_data
-**.pickle
+
+# allow to upload pickle_data folder
+# **pickle_data
+
+# allow to upload pickle files
+# **.pickle
+
 ModelsPHOG/.idea
 __pycache__
 logs
@@ -13,5 +20,9 @@ bazel-phog
 bazel-models_phog
 bazel-testlogs
 bazel-ModelsPHOG
-**.json
-**.txt
+
+# allow to upload json files (data files for training and testing)
+# **.json
+
+# allow to upload requirements / output files
+#**.txt
