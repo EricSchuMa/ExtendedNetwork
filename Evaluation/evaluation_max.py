@@ -137,11 +137,11 @@ def plot_confusion_matrix(conf, classes,
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 tf.logging.set_verbosity(tf.logging.FATAL)
 
-N_filename_EN = 'pickle_data/PY_non_terminal_dev.pickle'
-T_filename_EN = 'pickle_data/PY_terminal_1k_extended_dev.pickle'
+N_filename_EN = 'neural_code_completion/pickle_data/PY_non_terminal_dev.pickle'
+T_filename_EN = 'neural_code_completion/pickle_data/PY_terminal_1k_extended_dev.pickle'
 
-N_filename_PMN = 'pickle_data/PY_non_terminal.pickle'
-T_filename_PMN = 'pickle_data/PY_terminal_1k_whole.pickle'
+N_filename_PMN = 'neural_code_completion/pickle_data/PY_non_terminal.pickle'
+T_filename_PMN = 'neural_code_completion/pickle_data/PY_terminal_1k_whole.pickle'
 
 
 flags = tf.app.flags
