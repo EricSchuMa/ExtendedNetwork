@@ -12,7 +12,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-import models.reader_pointer_original as reader
+import neural_code_completion.models.reader_pointer_original as reader
 
 def variable_summaries(var, name):
   with tf.name_scope(name):

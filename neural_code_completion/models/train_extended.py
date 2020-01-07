@@ -9,11 +9,11 @@ import os
 
 import tensorflow as tf
 import numpy as np
-import reader_pointer_extended as reader
+import neural_code_completion.models.reader_pointer_extended as reader
 
 from tqdm import tqdm
-from extendedNetwork import EN, ENInput, run_epoch
-from config import SmallConfig, TestConfig, BestConfig, ExperimentalConfig
+from neural_code_completion.models.extendedNetwork import EN, ENInput, run_epoch
+from neural_code_completion.models.config import SmallConfig, TestConfig, BestConfig, ExperimentalConfig
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 tf.logging.set_verbosity(tf.logging.FATAL)
