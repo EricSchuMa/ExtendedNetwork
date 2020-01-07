@@ -16,31 +16,53 @@ from tqdm import tqdm
 from sklearn.metrics import confusion_matrix
 
 
-# %%
-def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=None, is_extended=True):
+def prepare_cm_constants(is_extended: bool):
     if is_extended:
-        conf = np.zeros(shape=(4,4))
-        hogID = eval_config.vocab_size[1] - 2
+        cm_size = 4
         unkID = eval_config.vocab_size[1] - 3
+        hogID = eval_config.vocab_size[1] - 2
     else:
-        conf = np.zeros(shape=(3,3))
+        cm_size = 3
         unkID = eval_config.vocab_size[1] - 2
-    
+        hogID = None
+    return (cm_size, unkID, hogID)
+
+
+def create_model_valid(valid_data, eval_config, initializer, is_extended):
+    if is_extended:
+        with tf.name_scope("Valid"):
+            valid_input = ENInput(config=eval_config, data=valid_data, name="ValidInput", FLAGS=FLAGS)
+            with tf.variable_scope("Model", reuse=False, initializer=initializer):
+                mvalid = EN(is_training=False, config=eval_config, input_=valid_input, FLAGS=FLAGS)
+    else:
+        with tf.name_scope("Valid"):
+            valid_input = PMNInput(config=eval_config, data=valid_data, name="ValidInput", FLAGS=FLAGS)
+            with tf.variable_scope("Model", reuse=False, initializer=initializer):
+                mvalid = PMN(is_training=False, config=eval_config, input_=valid_input, FLAGS=FLAGS)
+    return mvalid
+
+
+def convert_labels_and_predictions(prediction, labels, hogID, unkID, is_extended):
+    if is_extended:
+        new_labels = [0 if label == hogID else 1 if label == unkID else 2 for label in labels]
+        new_prediction = [0 if pred == hogID else 1 if pred == unkID else 2 if pred == label else 3
+                          for pred, label in zip(prediction, labels)]
+    else:
+        new_labels = [1 if label == unkID else 2 for label in labels]
+        new_prediction = [1 if pred == unkID else 2 if pred == label else 3
+                          for pred, label in zip(prediction, labels)]
+    return new_labels, new_prediction
+
+
+
+def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=None, is_extended=True):
+
+    cm_size, unkID, hogID  = prepare_cm_constants(is_extended=is_extended)
+    conf_matrix = np.zeros(shape=(cm_size,cm_size))
+
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-eval_config.init_scale, eval_config.init_scale)
-        
-        if is_extended:
-            with tf.name_scope("Valid"):
-                valid_input = ENInput(config=eval_config, data=valid_data, name="ValidInput", FLAGS=FLAGS)
-                with tf.variable_scope("Model", reuse=False, initializer=initializer):
-                    mvalid = EN(is_training=False, config=eval_config, input_=valid_input, FLAGS=FLAGS)
-        else:
-            with tf.name_scope("Valid"):
-                valid_input = PMNInput(config=eval_config, data=valid_data, name="ValidInput", FLAGS=FLAGS)
-                with tf.variable_scope("Model", reuse=False, initializer=initializer):
-                    mvalid = PMN(is_training=False, config=eval_config, input_=valid_input, FLAGS=FLAGS)
-
-            
+        mvalid = create_model_valid(valid_data, eval_config, initializer, is_extended)
         print('total trainable variables', len(tf.trainable_variables()), '\n\n')
 
         saver = tf.train.Saver(tf.trainable_variables())
@@ -67,19 +89,16 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
                 feed_dict[mvalid.memory] = memory
                 probs, labels = session.run([mvalid.probs, mvalid.labels], feed_dict)
                 prediction = np.argmax(probs, 1)
-                
-                if is_extended:
-                    new_labels = [0 if label==hogID else 1 if label == unkID else 2 for label in labels]
-                    new_prediction = [0 if pred == hogID else 1 if pred == unkID else 2 if pred == label else 3 
-                          for pred, label in zip(prediction, labels)]
-                else:
-                    new_labels = [1 if label == unkID else 2 for label in labels]
-                    new_prediction = [1 if pred == unkID else 2 if pred == label else 3 
-                          for pred, label in zip(prediction, labels)]
+
+                new_labels, new_prediction = convert_labels_and_predictions(prediction, labels, hogID, unkID,
+                                                                            is_extended)
                     
                 # add arrays to get true positives and true negatives
-                conf += confusion_matrix(new_labels, new_prediction)
-    return conf
+                conf_matrix += confusion_matrix(new_labels, new_prediction)
+    return conf_matrix
+
+
+
 
 
 # %%
@@ -129,6 +148,7 @@ def plot_confusion_matrix(conf, classes,
                     ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black")
     return ax
+
 
 
 def setup_tensorflow(model_type="best"):
