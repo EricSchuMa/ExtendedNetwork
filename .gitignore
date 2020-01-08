@@ -29,3 +29,5 @@ bazel-ModelsPHOG
 
 # allow to upload requirements / output files
 #**.txt
+/neural_code_completion/pickle_data/
+/neural_code_completion/models/logs/

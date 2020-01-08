@@ -1,7 +1,7 @@
-
 import os
 import warnings
 import matplotlib
+
 warnings.filterwarnings('ignore')
 import tensorflow as tf
 import numpy as np
@@ -54,11 +54,9 @@ def convert_labels_and_predictions(prediction, labels, hogID, unkID, is_extended
     return new_labels, new_prediction
 
 
-
 def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=None, is_extended=True):
-
-    cm_size, unkID, hogID  = prepare_cm_constants(is_extended=is_extended)
-    conf_matrix = np.zeros(shape=(cm_size,cm_size))
+    cm_size, unkID, hogID = prepare_cm_constants(is_extended=is_extended)
+    conf_matrix = np.zeros(shape=(cm_size, cm_size))
 
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-eval_config.init_scale, eval_config.init_scale)
@@ -92,13 +90,10 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
 
                 new_labels, new_prediction = convert_labels_and_predictions(prediction, labels, hogID, unkID,
                                                                             is_extended)
-                    
+
                 # add arrays to get true positives and true negatives
                 conf_matrix += confusion_matrix(new_labels, new_prediction)
     return conf_matrix
-
-
-
 
 
 # %%
@@ -122,8 +117,8 @@ def plot_confusion_matrix(conf, classes,
     # Only use the labels that appear in the data
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    
-    fig, ax = plt.subplots(figsize=(10,10))
+
+    fig, ax = plt.subplots(figsize=(10, 10))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
     # We want to show all ticks...
@@ -150,9 +145,8 @@ def plot_confusion_matrix(conf, classes,
     return ax
 
 
-
 def setup_tensorflow(model_type="best"):
-    os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     tf.logging.set_verbosity(tf.logging.FATAL)
     flags = tf.app.flags
     # FLAGS = flags.FLAGS
@@ -162,6 +156,7 @@ def setup_tensorflow(model_type="best"):
     flags.DEFINE_string("model",
                         model_type,
                         "A type of model. Possible options are: small, medium, best.")
+
 
 def get_config():
     flags = tf.app.flags
@@ -175,8 +170,6 @@ def get_config():
         return BestConfig()
     else:
         raise ValueError("Invalid model: %s", FLAGS.model)
-
-
 
 
 #######################################
@@ -193,50 +186,52 @@ if __name__ == '__main__':
     T_filename_PMN = os.path.join(data_dir_path, 'PY_terminal_1k_whole.pickle')
 
     # Load data
-    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = reader_EN.input_data(
-        N_filename_EN, T_filename_EN)
+    train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
+    train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = \
+        reader_EN.input_data(N_filename_EN, T_filename_EN)
 
-    train_data_EN = (train_dataN, train_dataT)
-    valid_data_EN = (valid_dataN, valid_dataT)
-    vocab_size_EN = (vocab_sizeN + 1, vocab_sizeT + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
+    train_data_ext_network = (train_data_nonterminal, train_data_terminal)
+    valid_data_ext_network = (validation_data_nonterminal, validation_data_terminal)
+    vocab_size_ext_network = (vocab_sizeN + 1, vocab_sizeT + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
 
+    # Prepare parameters for a 2 layer model
     eval_config = get_config()
     eval_config.hogWeight = 1.0
-    eval_config.vocab_size = vocab_size_EN
+    eval_config.vocab_size = vocab_size_ext_network
     eval_config.num_layers = 2
 
+    # %%
     # Evaluating the Extended Network
-    cm_boosted = create_confusion_matrix(valid_data_EN, 'models/logs/boosted_hog/PMN--4', eval_config)
-    cm_less = create_confusion_matrix(valid_data_EN, 'models/logs/less_hog/PMN--2', eval_config)
+    cm_debug = create_confusion_matrix(valid_data_ext_network, 'models/logs/2020-01-08-PMN--0', eval_config)
+    plot_confusion_matrix(cm_debug.astype(int)[:3], ["hogID", "unkID", "normal ID", "wrong normal ID"], normalize=True)
+    plt.show()
 
+
+def unused_code_evaluation_ext_network():
+    # cm_boosted = create_confusion_matrix(valid_data_ext_network, 'models/logs/boosted_hog/PMN--4', eval_config)
+    # cm_less = create_confusion_matrix(valid_data_ext_network, 'models/logs/less_hog/PMN--2', eval_config)
+    # cm_2_layer_20 = create_confusion_matrix(valid_data_ext_network, 'models/logs/extended_dev_20_drop_2_layer/PMN--7', eval_config)
 
     # %%
-    cm_2_layer_20 = create_confusion_matrix(valid_data_EN, 'models/logs/extended_dev_20_drop_2_layer/PMN--7', eval_config)
-
-
-    # %%
+    # Prepare parameters for a 1 layer model
     one_layer_config = eval_config
     one_layer_config.num_layers = 1
-    cm_1_layer_wo_drop = create_confusion_matrix(valid_data_EN, 'models/logs/extended_dev_without_drop/PMN--7',
-                                                 one_layer_config)
-
+    # cm_1_layer_wo_drop = create_confusion_matrix(valid_data_ext_network, 'models/logs/extended_dev_without_drop/PMN--7', one_layer_config)
 
     # %%
-    plot_confusion_matrix(cm_less.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-    plot_confusion_matrix(cm_boosted.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-
-
-    # %%
-    plot_confusion_matrix(cm_1_layer_wo_drop.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-    plot_confusion_matrix(cm_2_layer_20.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-
+    # plot_confusion_matrix(cm_less.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
+    # plot_confusion_matrix(cm_boosted.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
 
     # %%
-    precision_baseline_hog = 4378/(4378+11352)
-    precision_2layer_hog = 4499/(4499+10560)
+    # plot_confusion_matrix(cm_1_layer_wo_drop.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
+    # plot_confusion_matrix(cm_2_layer_20.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
 
-    precision_2layer_normal = 195130/(195130+67608+10560)
-    precision_baseline_normal = 188535/(73411+188535+11352)
+    # %%
+    precision_baseline_hog = 4378 / (4378 + 11352)
+    precision_2layer_hog = 4499 / (4499 + 10560)
+
+    precision_2layer_normal = 195130 / (195130 + 67608 + 10560)
+    precision_baseline_normal = 188535 / (73411 + 188535 + 11352)
 
     # print(precision_baseline)
     # print(precision_2layer)
@@ -244,23 +239,22 @@ if __name__ == '__main__':
     print(precision_baseline_normal)
     print(precision_2layer_normal)
 
+    # %%
+    # plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=False)
 
     # %%
-    plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=False)
+    # plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"])
+    # plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
+    # plt.show()
 
+# Evaluating the original network
+def unused_code_evaluation_original_network():
+    train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
+    train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = reader_PMN.input_data(N_filename_PMN,
+                                                                                                  T_filename_PMN)
 
-    # %%
-    plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"])
-    plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-    plt.show()
-
-
-    # %%
-    train_dataN, valid_dataN, vocab_sizeN, train_dataT, valid_dataT, vocab_sizeT, attn_size = reader_PMN.input_data(
-        N_filename_PMN, T_filename_PMN)
-
-    train_data_PMN = (train_dataN, train_dataT)
-    valid_data_PMN = (valid_dataN, valid_dataT)
+    train_data_PMN = (train_data_nonterminal, train_data_terminal)
+    valid_data_PMN = (validation_data_nonterminal, validation_data_terminal)
     vocab_size_PMN = (vocab_sizeN + 1, vocab_sizeT + 2)  # N is [w, eof], T is [w, unk_id, eof]
     eval_config = get_config()
     eval_config.vocab_size = vocab_size_PMN
@@ -269,11 +263,7 @@ if __name__ == '__main__':
     cm = create_confusion_matrix(valid_data_PMN, 'models/logs/vanilla_pmn_train_test/PMN--6',
                                  eval_config, is_extended=False)
 
-
     # %%
     plot_confusion_matrix(cm[:2].astype(int), ["unkID", ["normalID"], ["wrong normal ID"]])
     plot_confusion_matrix(cm[:2].astype(int), ["unkID", ["normalID"], ["wrong normal ID"]], normalize=True)
     plt.show()
-
-
-
