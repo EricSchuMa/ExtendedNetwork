@@ -18,6 +18,8 @@ Then run the following command at the folder "neural_code_completion\preprocess_
 python3 build_dataset.py
 ```
 
+Alternatively, you can download the dataset here: [data](https://drive.google.com/file/d/1aae4vr0wGmGQO6EaGxTXUEmcnSWM2srS/view?usp=sharing)
+
 ## Description of the directories
 
 #### neural_code_completion/models
