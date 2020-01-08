@@ -12,7 +12,10 @@
 
 ModelsPHOG/.idea
 __pycache__
-logs
+
+# allow to upload log files
+# logs
+
 bazel-bin
 bazel-genfiles
 bazel-out
