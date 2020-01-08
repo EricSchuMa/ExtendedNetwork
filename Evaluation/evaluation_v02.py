@@ -53,6 +53,18 @@ def convert_labels_and_predictions(prediction, labels, hogID, unkID, is_extended
                           for pred, label in zip(prediction, labels)]
     return new_labels, new_prediction
 
+def create_feed_dict(mvalid, session, state, eof_indicator, memory):
+    sub_cond = np.expand_dims(eof_indicator, axis=1)
+    condition = np.repeat(sub_cond, mvalid.size, axis=1)
+    zero_state = session.run(mvalid.initial_state)
+    feed_dict = {}
+    for i, (c, h) in enumerate(mvalid.initial_state):
+        assert condition.shape == state[i].c.shape
+        feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
+        feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
+    feed_dict[mvalid.memory] = memory
+    return feed_dict
+
 
 def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=None, is_extended=True):
     cm_size, unkID, hogID = prepare_cm_constants(is_extended=is_extended)
@@ -60,8 +72,8 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
 
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-eval_config.init_scale, eval_config.init_scale)
-        mvalid = create_model_valid(valid_data, eval_config, initializer, is_extended)
-        print('total trainable variables', len(tf.trainable_variables()), '\n\n')
+        model_valid = create_model_valid(valid_data, eval_config, initializer, is_extended)
+        print('In create_confusion_matrix: total trainable variables', len(tf.trainable_variables()), '\n\n')
 
         saver = tf.train.Saver(tf.trainable_variables())
         sv = tf.train.Supervisor(logdir=None, summary_op=None)
@@ -69,38 +81,26 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
         with sv.managed_session() as session:
             saver.restore(session, checkpoint)
 
-            state = session.run(mvalid.initial_state)
-            eof_indicator = np.ones(mvalid.input.batch_size, dtype=bool)
-            memory = np.zeros([mvalid.input.batch_size, mvalid.input.num_steps, mvalid.size])
+            state = session.run(model_valid.initial_state)
+            eof_indicator = np.ones(model_valid.input.batch_size, dtype=bool)
+            memory = np.zeros([model_valid.input.batch_size, model_valid.input.num_steps, model_valid.size])
 
+            # tqdm shows "progress bar" in the cmd line
             for step in tqdm(range(50)):
-                feed_dict = {}
-                sub_cond = np.expand_dims(eof_indicator, axis=1)
-                condition = np.repeat(sub_cond, mvalid.size, axis=1)
-                zero_state = session.run(mvalid.initial_state)
+                feed_dict = create_feed_dict(model_valid, session, state, eof_indicator, memory)
 
-                for i, (c, h) in enumerate(mvalid.initial_state):
-                    assert condition.shape == state[i].c.shape
-                    feed_dict[c] = np.where(condition, zero_state[i][0], state[i].c)
-                    feed_dict[h] = np.where(condition, zero_state[i][1], state[i].h)
-
-                feed_dict[mvalid.memory] = memory
-                probs, labels = session.run([mvalid.probs, mvalid.labels], feed_dict)
+                probs, labels = session.run([model_valid.probs, model_valid.labels], feed_dict)
                 prediction = np.argmax(probs, 1)
-
-                new_labels, new_prediction = convert_labels_and_predictions(prediction, labels, hogID, unkID,
-                                                                            is_extended)
+                new_labels, new_prediction = convert_labels_and_predictions(prediction, labels, hogID, unkID, is_extended)
 
                 # add arrays to get true positives and true negatives
                 conf_matrix += confusion_matrix(new_labels, new_prediction)
     return conf_matrix
 
 
-# %%
-def plot_confusion_matrix(conf, classes,
-                          normalize=False,
-                          title=None,
-                          cmap=plt.cm.Blues):
+
+
+def plot_confusion_matrix(conf, classes, normalize=False, title=None, cmap=plt.cm.Blues):
     matplotlib.rcParams.update({'font.size': 13})
     """
     This function prints and plots the confusion matrix.
@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     # %%
     # Evaluating the Extended Network
-    cm_debug = create_confusion_matrix(valid_data_ext_network, 'models/logs/2020-01-08-PMN--0', eval_config)
+    cm_debug = create_confusion_matrix(valid_data_ext_network, 'neural_code_completion/models/logs/2020-01-08-PMN--0/PMN--0', eval_config)
     plot_confusion_matrix(cm_debug.astype(int)[:3], ["hogID", "unkID", "normal ID", "wrong normal ID"], normalize=True)
     plt.show()
 
