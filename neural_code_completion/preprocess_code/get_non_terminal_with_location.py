@@ -9,99 +9,102 @@ import time
 from collections import Counter, defaultdict
 
 
-# global variables
-typeDict = dict()  # map N's name into its original ID(before expanding into 4*base_ID)
-numID = set()  # the set to include all sparse ID
-no_empty_set = set()
-typeList = list()  # the set to include all Types
-numType = 0
-dicID = dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
+class ProcessorForNonTerminals(object):
+
+    def __init__(self):
+        # instance variables, previously were global vars
+        self.typeDict = dict()  # map N's name into its original ID(before expanding into 4*base_ID)
+        self.numID = set()  # the set to include all sparse ID
+        self.no_empty_set = set()
+        self.typeList = list()  # the set to include all Types
+        self.dicID= dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
+        self.numType: int = 0    # counter for getting next ID
 
 
-def process(filename):
-    """
-    Fills the type_dict and calculates the number of types.
-    Also converts AST terminal names to IDs (stored in typeDict) - contains information about children and siblings
-    :param filename: File to be processed
-    :return: corpus_N - IDs for N with information about children and siblings, corpus_parent - Offsets to parents
-    """
-    with open(filename, encoding='latin-1') as lines:
-        line_index = 0
-        corpus_N = list()
-        corpus_parent = list()
+    def process_file(self, filename):
+        """
+        Fills the type_dict and calculates the number of types.
+        Also converts AST terminal names to IDs (stored in typeDict) - contains information about children and siblings
+        :param filename: File to be processed
+        :return: corpus_N - IDs for N with information about children and siblings, corpus_parent - Offsets to parents
+        """
+        with open(filename, encoding='latin-1') as lines:
+            line_index = 0
+            corpus_N = list()
+            corpus_parent = list()
 
-        for line in lines:
-            line_index += 1
-            if line_index % 1000 == 0:
-                print('Processing line: ', line_index)
-            data = json.loads(line)
-            line_N = list()
-            has_sibling = Counter()
-            parent_counter = defaultdict(lambda: 1)  # default parent is previous 1
-            parent_list = list()
+            for line in lines:
+                line_index += 1
+                if line_index % 1000 == 0:
+                    print('Processing line: ', line_index)
+                data = json.loads(line)
+                line_N = list()
+                has_sibling = Counter()
+                parent_counter = defaultdict(lambda: 1)  # default parent is previous 1
+                parent_list = list()
 
-            if len(data) >= 3e4:
-                continue
+                if len(data) >= 3e4:
+                    continue
 
-            for i, dic in enumerate(data):  # JS data[:-1] or PY data
-                typeName = dic['type']
-                if typeName in typeList:    # todo: inefficient search; and check whether both typeList and typeDict are needed
-                    base_ID = typeDict[typeName]
-                else:
-                    typeList.append(typeName)
-                    global numType
-                    typeDict[typeName] = numType
-                    base_ID = numType
-                    numType = numType + 1
-
-                # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
-                # Sibling information is got by the ancestor's children information
-                if 'children' in dic.keys():
-                    if has_sibling[i]:
-                        ID = base_ID * 4 + 3
+                for i, dic in enumerate(data):  # JS data[:-1] or PY data
+                    typeName = dic['type']
+                    if typeName in self.typeList:  # todo: inefficient search; and check whether both typeList and typeDict are needed
+                        base_ID = self.typeDict[typeName]
                     else:
-                        ID = base_ID * 4 + 2
+                        self.typeList.append(typeName)
+                        # global numType
+                        self.typeDict[typeName] = self.numType
+                        base_ID = self.numType
+                        self.numType = self.numType + 1
 
-                    childs = dic['children']
-                    for j in childs:
-                        parent_counter[j] = j - i
+                    # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
+                    # Sibling information is got by the ancestor's children information
+                    if 'children' in dic.keys():
+                        if has_sibling[i]:
+                            ID = base_ID * 4 + 3
+                        else:
+                            ID = base_ID * 4 + 2
 
-                    if len(childs) > 1:
+                        childs = dic['children']
                         for j in childs:
-                            has_sibling[j] = 1
-                else:
-                    if has_sibling[i]:
-                        ID = base_ID * 4 + 1
+                            parent_counter[j] = j - i
+
+                        if len(childs) > 1:
+                            for j in childs:
+                                has_sibling[j] = 1
                     else:
-                        ID = base_ID * 4
-                # recording the N which has non-empty T
-                if 'value' in dic.keys():
-                    no_empty_set.add(ID)
+                        if has_sibling[i]:
+                            ID = base_ID * 4 + 1
+                        else:
+                            ID = base_ID * 4
+                    # recording the N which has non-empty T
+                    if 'value' in dic.keys():
+                        self.no_empty_set.add(ID)
 
-                line_N.append(ID)
-                parent_list.append(parent_counter[i])
-                numID.add(ID)
+                    line_N.append(ID)
+                    parent_list.append(parent_counter[i])
+                    self.numID.add(ID)
 
-            corpus_N.append(line_N)
-            corpus_parent.append(parent_list)
-        return corpus_N, corpus_parent
-
-
-def map_dense_id(data):
-    result = list()
-    for line_id in data:
-        line_new_id = list()
-        for i in line_id:
-            if i in dicID.keys():
-                line_new_id.append(dicID[i])
-            else:
-                dicID[i] = len(dicID)
-                line_new_id.append(dicID[i])
-        result.append(line_new_id)
-    return result
+                corpus_N.append(line_N)
+                corpus_parent.append(parent_list)
+            return corpus_N, corpus_parent
 
 
-def save(filename, typeDict, numType, dicID, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense):
+    def map_dense_id(self, data):
+        result = list()
+        for line_id in data:
+            line_new_id = list()
+            for i in line_id:
+                if i in self.dicID.keys():
+                    line_new_id.append(self.dicID[i])
+                else:
+                    self.dicID[i] = len(self.dicID)
+                    line_new_id.append(self.dicID[i])
+            result.append(line_new_id)
+        return result
+
+
+def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense):
     """
     :param filename: Name of destination (pickle file)
     :param typeDict: Dictionary for inferring types to IDs
@@ -116,9 +119,9 @@ def save(filename, typeDict, numType, dicID, vocab_size, trainData, testData, tr
     """
     with open(filename, 'wb') as f:
         save = {
-            'typeDict': typeDict,
-            'numType': numType,
-            'dicID': dicID,
+            'typeDict': self.typeDict,
+            'numType': self.numType,
+            'dicID': self.dicID,
             'vocab_size': vocab_size,
             'trainData': trainData,
             'testData': testData,
@@ -132,26 +135,34 @@ def save(filename, typeDict, numType, dicID, vocab_size, trainData, testData, tr
 def create_and_save_non_terminals_with_location(train_filename, test_filename, target_filename):
     start_time = time.time()
     print('Start procesing %s' % (train_filename))
-    trainData, trainParent = process(train_filename)
+    processor = ProcessorForNonTerminals()
+    trainData, trainParent = processor.process_file(train_filename)
     print('Start procesing %s' % (test_filename))
-    testData, testParent = process(test_filename)
-    trainData = map_dense_id(trainData)
-    testData = map_dense_id(testData)
-    vocab_size = len(numID)
-    assert len(dicID) == vocab_size
+    testData, testParent = processor.process_file(test_filename)
+
+    # todo: clean up the following; some args should become instance vars
+    trainData = processor.map_dense_id(trainData)
+    testData = processor.map_dense_id(testData)
+    empty_set_dense, vocab_size = processor.get_empty_set_dense()
+    print("Saving results ...")
+    processor.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
+    print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
+    print('The vocabulary:', vocab_size, processor.numID)
+    print('Finished generating terminals. It took %.2fs' % (time.time() - start_time))
+
+
+def get_empty_set_dense(self):
+    vocab_size = len(self.numID)
+    assert len(self.dicID) == vocab_size
     # for print the N which can only has empty T
-    assert no_empty_set.issubset(numID)
-    empty_set = numID.difference(no_empty_set)
+    assert self.no_empty_set.issubset(self.numID)
+    empty_set = self.numID.difference(self.no_empty_set)
     empty_set_dense = set()
-    print('The dicID: %s' % dicID)
-    print('The vocab_size: %s' % vocab_size)
+    # print('The dicID: %s' % dicID)
+    # print('The vocab_size: %s' % vocab_size)
     for i in empty_set:
-        empty_set_dense.add(dicID[i])
-    print('The N set that can only has empty terminals: ', len(empty_set_dense), empty_set_dense)
-    print('The vocaburary:', vocab_size, numID)
-    save(target_filename, typeDict, numType, dicID, vocab_size, trainData, testData, trainParent, testParent,
-         empty_set_dense)
-    print('Finishing generating terminals. It took %.2fs' % (time.time() - start_time))
+        empty_set_dense.add(self.dicID[i])
+    return empty_set_dense, vocab_size
 
 
 # todo: Create a top-level file for all preprocessing.
