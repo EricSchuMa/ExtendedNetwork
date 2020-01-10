@@ -31,3 +31,4 @@ bazel-ModelsPHOG
 #**.txt
 /neural_code_completion/pickle_data/
 /neural_code_completion/models/logs/
+/data/
