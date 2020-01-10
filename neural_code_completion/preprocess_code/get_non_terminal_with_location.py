@@ -2,7 +2,6 @@
 # 1. Refactored
 # 2. Added information about location to each AST node
 
-import numpy as np
 from six.moves import cPickle as pickle
 import json
 import time
@@ -17,8 +16,8 @@ class ProcessorForNonTerminals(object):
         self.numID = set()  # the set to include all sparse ID
         self.no_empty_set = set()
         self.typeList = list()  # the set to include all Types
-        self.dicID= dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
-        self.numType: int = 0    # counter for getting next ID
+        self.dicID = dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
+        self.numType: int = 0  # counter for getting next ID
 
 
     def process_file(self, filename):
@@ -29,66 +28,70 @@ class ProcessorForNonTerminals(object):
         :return: corpus_N - IDs for N with information about children and siblings, corpus_parent - Offsets to parents
         """
         with open(filename, encoding='latin-1') as lines:
-            line_index = 0
             corpus_N = list()
             corpus_parent = list()
 
-            for line in lines:
-                line_index += 1
+            for line_index, line in enumerate(lines):
                 if line_index % 1000 == 0:
                     print('Processing line: ', line_index)
-                data = json.loads(line)
-                line_N = list()
-                has_sibling = Counter()
-                parent_counter = defaultdict(lambda: 1)  # default parent is previous 1
-                parent_list = list()
+                line_N, parent_list = self._process_line(line)
 
-                if len(data) >= 3e4:
-                    continue
-
-                for i, dic in enumerate(data):  # JS data[:-1] or PY data
-                    typeName = dic['type']
-                    if typeName in self.typeList:  # todo: inefficient search; and check whether both typeList and typeDict are needed
-                        base_ID = self.typeDict[typeName]
-                    else:
-                        self.typeList.append(typeName)
-                        # global numType
-                        self.typeDict[typeName] = self.numType
-                        base_ID = self.numType
-                        self.numType = self.numType + 1
-
-                    # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
-                    # Sibling information is got by the ancestor's children information
-                    if 'children' in dic.keys():
-                        if has_sibling[i]:
-                            ID = base_ID * 4 + 3
-                        else:
-                            ID = base_ID * 4 + 2
-
-                        childs = dic['children']
-                        for j in childs:
-                            parent_counter[j] = j - i
-
-                        if len(childs) > 1:
-                            for j in childs:
-                                has_sibling[j] = 1
-                    else:
-                        if has_sibling[i]:
-                            ID = base_ID * 4 + 1
-                        else:
-                            ID = base_ID * 4
-                    # recording the N which has non-empty T
-                    if 'value' in dic.keys():
-                        self.no_empty_set.add(ID)
-
-                    line_N.append(ID)
-                    parent_list.append(parent_counter[i])
-                    self.numID.add(ID)
-
-                corpus_N.append(line_N)
-                corpus_parent.append(parent_list)
+                if line_N:
+                    corpus_N.append(line_N)
+                    corpus_parent.append(parent_list)
             return corpus_N, corpus_parent
 
+
+    def _process_line(self, line):
+        data = json.loads(line)
+        if len(data) >= 3e4:
+            return None, None
+
+        line_N = list()
+        has_sibling = Counter()
+        parent_counter = defaultdict(lambda: 1)  # default parent is previous 1
+        parent_list = list()
+
+        for i, dic in enumerate(data):  # JS data[:-1] or PY data
+            typeName = dic['type']
+            if typeName in self.typeList:
+                base_ID = self.typeDict[typeName]
+            else:
+                self.typeList.append(typeName)
+                # global numType
+                self.typeDict[typeName] = self.numType
+                base_ID = self.numType
+                self.numType = self.numType + 1
+
+            # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
+            # Sibling information is got by the ancestor's children information
+            if 'children' in dic.keys():
+                if has_sibling[i]:
+                    ID = base_ID * 4 + 3
+                else:
+                    ID = base_ID * 4 + 2
+
+                childs = dic['children']
+                for j in childs:
+                    parent_counter[j] = j - i
+
+                if len(childs) > 1:
+                    for j in childs:
+                        has_sibling[j] = 1
+            else:
+                if has_sibling[i]:
+                    ID = base_ID * 4 + 1
+                else:
+                    ID = base_ID * 4
+            # recording the N which has non-empty T
+            if 'value' in dic.keys():
+                self.no_empty_set.add(ID)
+
+            line_N.append(ID)
+            parent_list.append(parent_counter[i])
+            self.numID.add(ID)
+
+        return line_N, parent_list
 
     def map_dense_id(self, data):
         result = list()
@@ -104,6 +107,19 @@ class ProcessorForNonTerminals(object):
         return result
 
 
+    def get_empty_set_dense(self):
+        vocab_size = len(self.numID)
+        assert len(self.dicID) == vocab_size
+        # for print the N which can only has empty T
+        assert self.no_empty_set.issubset(self.numID)
+        empty_set = self.numID.difference(self.no_empty_set)
+        empty_set_dense = set()
+        # print('The dicID: %s' % dicID)
+        # print('The vocab_size: %s' % vocab_size)
+        for i in empty_set:
+            empty_set_dense.add(self.dicID[i])
+        return empty_set_dense, vocab_size
+
     def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense):
         """
         :param filename: Name of destination (pickle file)
@@ -115,9 +131,9 @@ class ProcessorForNonTerminals(object):
         :param empty_set_dense: Dense set of non-terminals who can't have value
 
         Used from fields:
-        :param typeDict: Dictionary for inferring types to IDs
-        :param numType: Number of total types
-        :param dicID: Maps sparse IDs to dense IDs
+        typeDict: Dictionary for inferring types to IDs
+        numType: Number of total types
+        dicID: Maps sparse IDs to dense IDs
         """
         with open(filename, 'wb') as f:
             save = {
@@ -133,11 +149,8 @@ class ProcessorForNonTerminals(object):
             }
             pickle.dump(save, f, protocol=2)
 
-
-    def get_and_save_non_terminals_with_location(self, train_filename, test_filename, target_filename):
-
+    def process_all_and_save(self, train_filename, test_filename, target_filename):
         print('Start procesing %s' % (train_filename))
-
         trainData, trainParent = self.process_file(train_filename)
         print('Start procesing %s' % (test_filename))
         testData, testParent = self.process_file(test_filename)
@@ -146,25 +159,12 @@ class ProcessorForNonTerminals(object):
         trainData = self.map_dense_id(trainData)
         testData = self.map_dense_id(testData)
         empty_set_dense, vocab_size = self.get_empty_set_dense()
+
         print("Saving results ...")
         self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
         print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
         print('The vocabulary:', vocab_size, self.numID)
 
-
-
-    def get_empty_set_dense(self):
-        vocab_size = len(self.numID)
-        assert len(self.dicID) == vocab_size
-        # for print the N which can only has empty T
-        assert self.no_empty_set.issubset(self.numID)
-        empty_set = self.numID.difference(self.no_empty_set)
-        empty_set_dense = set()
-        # print('The dicID: %s' % dicID)
-        # print('The vocab_size: %s' % vocab_size)
-        for i in empty_set:
-            empty_set_dense.add(self.dicID[i])
-        return empty_set_dense, vocab_size
 
 
 # todo: Create a top-level file for all preprocessing.
@@ -176,5 +176,5 @@ if __name__ == '__main__':
 
     start_time = time.time()
     processor = ProcessorForNonTerminals()
-    processor.get_and_save_non_terminals_with_location(train_filename, test_filename, target_filename)
+    processor.process_all_and_save(train_filename, test_filename, target_filename)
     print('Finished generating terminals. It took %.2fs' % (time.time() - start_time))
