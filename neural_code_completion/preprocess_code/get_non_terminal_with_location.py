@@ -12,12 +12,12 @@ class ProcessorForNonTerminals(object):
 
     def __init__(self):
         # instance variables, previously were global vars
-        self.typeDict = dict()  # map N's name into its original ID(before expanding into 4*base_ID)
-        self.numID = set()  # the set to include all sparse ID
-        self.no_empty_set = set()
-        self.typeList = list()  # the set to include all Types
+        # map N's name into its original ID(before expanding into 4*base_ID)
+        # It is an autoincrementing ID table, see http://bit.ly/2QHVQyo
+        self.typeDict = defaultdict(lambda : len(self.typeDict))
+        self.all_sparse_IDs = set()  # the set to include all sparse ID
         self.dicID = dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
-        self.numType: int = 0  # counter for getting next ID
+        self.IDs_of_nodes_with_terminals = set()
 
 
     def process_file(self, filename):
@@ -34,8 +34,8 @@ class ProcessorForNonTerminals(object):
             for line_index, line in enumerate(lines):
                 if line_index % 1000 == 0:
                     print('Processing line: ', line_index)
-                line_N, parent_list = self._process_line(line)
 
+                line_N, parent_list = self._process_line(line)
                 if line_N:
                     corpus_N.append(line_N)
                     corpus_parent.append(parent_list)
@@ -54,14 +54,8 @@ class ProcessorForNonTerminals(object):
 
         for i, dic in enumerate(data):  # JS data[:-1] or PY data
             typeName = dic['type']
-            if typeName in self.typeList:
-                base_ID = self.typeDict[typeName]
-            else:
-                self.typeList.append(typeName)
-                # global numType
-                self.typeDict[typeName] = self.numType
-                base_ID = self.numType
-                self.numType = self.numType + 1
+            # This is an auto-incrementing default dict
+            base_ID = self.typeDict[typeName]
 
             # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
             # Sibling information is got by the ancestor's children information
@@ -83,15 +77,15 @@ class ProcessorForNonTerminals(object):
                     ID = base_ID * 4 + 1
                 else:
                     ID = base_ID * 4
-            # recording the N which has non-empty T
+            # record the Non-terminals which have a non-empty Terminal
             if 'value' in dic.keys():
-                self.no_empty_set.add(ID)
+                self.IDs_of_nodes_with_terminals.add(ID)
 
             line_N.append(ID)
             parent_list.append(parent_counter[i])
-            self.numID.add(ID)
-
+            self.all_sparse_IDs.add(ID)
         return line_N, parent_list
+
 
     def map_dense_id(self, data):
         result = list()
@@ -108,11 +102,11 @@ class ProcessorForNonTerminals(object):
 
 
     def get_empty_set_dense(self):
-        vocab_size = len(self.numID)
+        vocab_size = len(self.all_sparse_IDs)
         assert len(self.dicID) == vocab_size
         # for print the N which can only has empty T
-        assert self.no_empty_set.issubset(self.numID)
-        empty_set = self.numID.difference(self.no_empty_set)
+        assert self.IDs_of_nodes_with_terminals.issubset(self.all_sparse_IDs)
+        empty_set = self.all_sparse_IDs.difference(self.IDs_of_nodes_with_terminals)
         empty_set_dense = set()
         # print('The dicID: %s' % dicID)
         # print('The vocab_size: %s' % vocab_size)
@@ -138,7 +132,7 @@ class ProcessorForNonTerminals(object):
         with open(filename, 'wb') as f:
             save = {
                 'typeDict': self.typeDict,
-                'numType': self.numType,
+                'numType': len(self.typeDict),
                 'dicID': self.dicID,
                 'vocab_size': vocab_size,
                 'trainData': trainData,
@@ -163,7 +157,7 @@ class ProcessorForNonTerminals(object):
         print("Saving results ...")
         self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
         print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
-        print('The vocabulary:', vocab_size, self.numID)
+        print('The vocabulary:', vocab_size, self.all_sparse_IDs)
 
 
 
