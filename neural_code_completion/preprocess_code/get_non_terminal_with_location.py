@@ -104,65 +104,67 @@ class ProcessorForNonTerminals(object):
         return result
 
 
-def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense):
-    """
-    :param filename: Name of destination (pickle file)
-    :param typeDict: Dictionary for inferring types to IDs
-    :param numType: Number of total types
-    :param dicID: Maps sparse IDs to dense IDs
-    :param vocab_size: the vocabulary size to restrict the number of words
-    :param trainData: Processed training data (mapped to respective IDs)
-    :param testData: Processed testing data (mapped to respective IDs)
-    :param trainParent: Offsets to parent in training set
-    :param testParent: Offsets to parent in testing set
-    :param empty_set_dense: Dense set of non-terminals who can't have value
-    """
-    with open(filename, 'wb') as f:
-        save = {
-            'typeDict': self.typeDict,
-            'numType': self.numType,
-            'dicID': self.dicID,
-            'vocab_size': vocab_size,
-            'trainData': trainData,
-            'testData': testData,
-            'trainParent': trainParent,
-            'testParent': testParent,
-            'typeOnlyHasEmptyValue': empty_set_dense,
-        }
-        pickle.dump(save, f, protocol=2)
+    def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense):
+        """
+        :param filename: Name of destination (pickle file)
+        :param vocab_size: the vocabulary size to restrict the number of words
+        :param trainData: Processed training data (mapped to respective IDs)
+        :param testData: Processed testing data (mapped to respective IDs)
+        :param trainParent: Offsets to parent in training set
+        :param testParent: Offsets to parent in testing set
+        :param empty_set_dense: Dense set of non-terminals who can't have value
+
+        Used from fields:
+        :param typeDict: Dictionary for inferring types to IDs
+        :param numType: Number of total types
+        :param dicID: Maps sparse IDs to dense IDs
+        """
+        with open(filename, 'wb') as f:
+            save = {
+                'typeDict': self.typeDict,
+                'numType': self.numType,
+                'dicID': self.dicID,
+                'vocab_size': vocab_size,
+                'trainData': trainData,
+                'testData': testData,
+                'trainParent': trainParent,
+                'testParent': testParent,
+                'typeOnlyHasEmptyValue': empty_set_dense,
+            }
+            pickle.dump(save, f, protocol=2)
 
 
-def create_and_save_non_terminals_with_location(train_filename, test_filename, target_filename):
-    start_time = time.time()
-    print('Start procesing %s' % (train_filename))
-    processor = ProcessorForNonTerminals()
-    trainData, trainParent = processor.process_file(train_filename)
-    print('Start procesing %s' % (test_filename))
-    testData, testParent = processor.process_file(test_filename)
+    def get_and_save_non_terminals_with_location(self, train_filename, test_filename, target_filename):
 
-    # todo: clean up the following; some args should become instance vars
-    trainData = processor.map_dense_id(trainData)
-    testData = processor.map_dense_id(testData)
-    empty_set_dense, vocab_size = processor.get_empty_set_dense()
-    print("Saving results ...")
-    processor.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
-    print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
-    print('The vocabulary:', vocab_size, processor.numID)
-    print('Finished generating terminals. It took %.2fs' % (time.time() - start_time))
+        print('Start procesing %s' % (train_filename))
+
+        trainData, trainParent = self.process_file(train_filename)
+        print('Start procesing %s' % (test_filename))
+        testData, testParent = self.process_file(test_filename)
+
+        # todo: clean up the following; some args should become instance fields
+        trainData = self.map_dense_id(trainData)
+        testData = self.map_dense_id(testData)
+        empty_set_dense, vocab_size = self.get_empty_set_dense()
+        print("Saving results ...")
+        self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
+        print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
+        print('The vocabulary:', vocab_size, self.numID)
 
 
-def get_empty_set_dense(self):
-    vocab_size = len(self.numID)
-    assert len(self.dicID) == vocab_size
-    # for print the N which can only has empty T
-    assert self.no_empty_set.issubset(self.numID)
-    empty_set = self.numID.difference(self.no_empty_set)
-    empty_set_dense = set()
-    # print('The dicID: %s' % dicID)
-    # print('The vocab_size: %s' % vocab_size)
-    for i in empty_set:
-        empty_set_dense.add(self.dicID[i])
-    return empty_set_dense, vocab_size
+
+    def get_empty_set_dense(self):
+        vocab_size = len(self.numID)
+        assert len(self.dicID) == vocab_size
+        # for print the N which can only has empty T
+        assert self.no_empty_set.issubset(self.numID)
+        empty_set = self.numID.difference(self.no_empty_set)
+        empty_set_dense = set()
+        # print('The dicID: %s' % dicID)
+        # print('The vocab_size: %s' % vocab_size)
+        for i in empty_set:
+            empty_set_dense.add(self.dicID[i])
+        return empty_set_dense, vocab_size
 
 
 # todo: Create a top-level file for all preprocessing.
@@ -171,4 +173,8 @@ if __name__ == '__main__':
     train_filename = '../../data/python100k_train.json'
     test_filename = '../../data/python50k_eval.json'
     target_filename = '../pickle_data/PY_non_terminal_with_location.pickle'
-    create_and_save_non_terminals_with_location(train_filename, test_filename, target_filename)
+
+    start_time = time.time()
+    processor = ProcessorForNonTerminals()
+    processor.get_and_save_non_terminals_with_location(train_filename, test_filename, target_filename)
+    print('Finished generating terminals. It took %.2fs' % (time.time() - start_time))
