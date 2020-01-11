@@ -75,7 +75,12 @@ def run_create_json(config):
     pass
 
 def run_create_pickle(config):
-    pass
+    import neural_code_completion.preprocess_code.get_non_terminal_with_location as processor
+    train_filename = config.dir_json_data + config.py_json_90k
+    test_filename = config.dir_json_data + config.py_json_10k
+    target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal_fake
+
+    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
 
 def run_create_models(config):
     pass

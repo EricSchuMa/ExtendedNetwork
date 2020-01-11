@@ -163,16 +163,23 @@ class ProcessorForNonTerminals(object):
         print('The vocabulary:', vocab_size, self.all_sparse_IDs)
 
 
-# todo: Create a top-level file for all preprocessing.
-#  Use explicit file names and params only in this file.
+def main(train_filename, test_filename, target_filename) -> None:
+    """
+    Main routine for processing called by a centralized script
+    :param train_filename:
+    :param test_filename:
+    :param target_filename:
+    """
+    processor = ProcessorForNonTerminals()
+    # processor.process_all_and_save(train_filename, test_filename, target_filename)
+    processor.process_all_and_save(train_filename, test_filename, target_filename, useFakeTestData=True)
+
+
 if __name__ == '__main__':
     train_filename = '../../data/python100k_train.json'
     test_filename = '../../data/python50k_eval.json'
     target_filename = '../pickle_data/PY_non_terminal_with_location.pickle'
     target_filename_fake = '../pickle_data/PY_non_terminal_with_location_fake.pickle'
 
-    start_time = time.time()
-    processor = ProcessorForNonTerminals()
-    # processor.process_all_and_save(train_filename, test_filename, target_filename)
-    processor.process_all_and_save(train_filename, test_filename, target_filename_fake, useFakeTestData=True)
-    print('Finished generating terminals. It took %.2fs' % (time.time() - start_time))
+    main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename_fake)
+
