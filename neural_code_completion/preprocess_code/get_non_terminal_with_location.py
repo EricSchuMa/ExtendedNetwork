@@ -58,8 +58,7 @@ class ProcessorForNonTerminals(object):
             # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
             # Sibling information is got by the ancestor's children information
 
-            keys = dic.keys()
-            if 'children' in keys:
+            if 'children' in dic:
                 if has_sibling[i]:
                     ID = base_ID * 4 + 3
                 else:
@@ -78,7 +77,7 @@ class ProcessorForNonTerminals(object):
                 else:
                     ID = base_ID * 4
             # record the Non-terminals which have a non-empty Terminal
-            if 'value' in keys:
+            if 'value' in dic:
                 self.ids_of_nodes_with_terminals.add(ID)
 
             line_N.append(ID)
