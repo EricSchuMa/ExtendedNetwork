@@ -80,7 +80,9 @@ def run_create_pickle(config):
     test_filename = config.dir_json_data + config.py_json_10k
     target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal_fake
 
-    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
+    # todo: REPLACE back train_filename=train_filename after testing!
+    # processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
+    processor.main(train_filename=test_filename, test_filename=test_filename, target_filename= target_filename)
 
 def run_create_models(config):
     pass

@@ -180,7 +180,8 @@ if __name__ == '__main__':
 
     # Assume that the working dir is the root project folder (i.e. 1 above "neural_code_completion")
     data_dir_path = 'neural_code_completion/pickle_data/'
-    N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_dev.pickle')
+    N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_with_location_fake.pickle')
+    # N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_dev.pickle')
     T_filename_EN = os.path.join(data_dir_path, 'PY_terminal_1k_extended_dev.pickle')
     N_filename_PMN = os.path.join(data_dir_path, 'PY_non_terminal.pickle')
     T_filename_PMN = os.path.join(data_dir_path, 'PY_terminal_1k_whole.pickle')

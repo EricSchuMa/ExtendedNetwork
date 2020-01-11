@@ -6,6 +6,8 @@ from six.moves import cPickle as pickle
 import json
 import time
 from collections import Counter, defaultdict
+import copy
+import itertools
 
 
 class ProcessorForNonTerminals(object):
@@ -150,17 +152,78 @@ class ProcessorForNonTerminals(object):
         testData = self.map_dense_id(testData)
         empty_set_dense, vocab_size = self.get_empty_set_dense()
 
-        print("Saving results ...")
-        if useFakeTestData:
-            fakeTestBase = 10000
-            testDataFake = list(range(fakeTestBase, fakeTestBase + len(testData)))
-            fakeParentBase = 100000
-            testParentFake = list(range(fakeParentBase, fakeParentBase + len(testParent)))
-            self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParentFake, empty_set_dense)
-        else:
-            self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
         print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
         print('The vocabulary:', vocab_size, self.all_sparse_IDs)
+
+        print("Saving results ...")
+        if useFakeTestData:
+            encoderTestData = DataEncoder(base_integer=10000)
+            testDataFake = encoderTestData.encode(testData)
+            encoderTestParent = DataEncoder(base_integer=100000)
+            testParentFake = encoderTestParent.encode(testParent)
+
+            self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParentFake,
+                      empty_set_dense)
+            return {'encoderTestData': encoderTestData, 'encoderTestParent': encoderTestParent }
+        else:
+            self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
+            return None
+
+
+
+class DataEncoder:
+    """
+    Encodes input data by unique integers (keys), and stores a mapping keys => original data.
+    Maintains the structure of the original data.
+    """
+
+    def __init__(self, base_integer=10000):
+        self.keys_to_original_values = dict()
+        self.base_integer = base_integer
+
+    def _transform(self, input_list_of_list, output_list_of_list, map_element_func, side_effect_func=None):
+        step_idx = 0
+        for outer_idx, outer_list in enumerate(input_list_of_list):
+            for inner_idx, inner_val in enumerate(outer_list):
+                key = map_element_func(inner_val, step_idx)
+                output_list_of_list[outer_idx][inner_idx] = key
+                if side_effect_func:
+                    side_effect_func(key=key, value=inner_val)
+                step_idx += 1
+        return output_list_of_list
+
+    def encode(self, original_values):
+        """
+        Recursively walks through input data, and for each entry creates a unique key, and stores (key, original_value)
+        in self.keys_to_original_values. Note: unique only "locally" in the input.
+        :param original_values: list of lists with original values
+        :return: data structure with same dims as input but entries replaced by unique keys
+        """
+
+        assert (isinstance(original_values, list))
+        assert (len(original_values) == 0 or isinstance(original_values[0], list))
+
+        def generate_next_key(value, step_idx):
+            return self.base_integer + step_idx
+
+        def dict_update(key, value):
+            self.keys_to_original_values[key] = value
+
+        output_list_of_lists = copy.deepcopy(original_values)
+        return self._transform(original_values, output_list_of_lists, map_element_func=generate_next_key,
+                               side_effect_func=dict_update)
+
+    def decode(self, encoded_values):
+        """
+        Returns a data structure of same shape as the encoded values, but each value replaced by
+        a corresponding entry from self.keys_to_original_values (i.e. kind of
+        :param encoded_values: list of lists with keys to original values
+        :return: data structure with same dims as input but keys (entries) replaced by values
+        """
+
+        output_list_of_lists = copy.deepcopy(encoded_values)
+        return self._transform(encoded_values, output_list_of_lists,
+                               map_element_func=lambda key, step_idx: self.keys_to_original_values[key])
 
 
 def main(train_filename, test_filename, target_filename) -> None:
@@ -182,4 +245,3 @@ if __name__ == '__main__':
     target_filename_fake = '../pickle_data/PY_non_terminal_with_location_fake.pickle'
 
     main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename_fake)
-
