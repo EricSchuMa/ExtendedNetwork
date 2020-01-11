@@ -112,7 +112,7 @@ class ProcessorForNonTerminals(object):
             empty_set_dense.add(self.dicID[i])
         return empty_set_dense, vocab_size
 
-    def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense):
+    def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense, encoderTestData):
         """
         :param filename: Name of destination (pickle file)
         :param vocab_size: the vocabulary size to restrict the number of words
@@ -138,6 +138,7 @@ class ProcessorForNonTerminals(object):
                 'trainParent': trainParent,
                 'testParent': testParent,
                 'typeOnlyHasEmptyValue': empty_set_dense,
+                'encoderTestData': encoderTestData
             }
             pickle.dump(save, f, protocol=2)
 
@@ -159,14 +160,14 @@ class ProcessorForNonTerminals(object):
         if useFakeTestData:
             encoderTestData = DataEncoder(base_integer=10000)
             testDataFake = encoderTestData.encode(testData)
-            encoderTestParent = DataEncoder(base_integer=100000)
-            testParentFake = encoderTestParent.encode(testParent)
+            # encoderTestParent = DataEncoder(base_integer=100000)
+            # testParentFake = encoderTestParent.encode(testParent)
+            # self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParentFake, empty_set_dense)
 
-            self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParentFake,
-                      empty_set_dense)
-            return {'encoderTestData': encoderTestData, 'encoderTestParent': encoderTestParent }
+            self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParent, empty_set_dense, encoderTestData)
+            return encoderTestData
         else:
-            self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
+            self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense, None)
             return None
 
 

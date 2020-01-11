@@ -52,12 +52,13 @@ class ConfigDebug(ConfigDefaults):
     # py_json_10k
 
     # Pickle files used for result evaluation ("validation")
-    py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
-    py_pickle_eval_nonterminal_fake: str = 'PY_non_terminal_with_location_fake.pickle'
+    # py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
+    py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_fake.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
     # Files used for creating models
     # todo: complete, if needed
+    py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
 
 @dataclass
 class ConfigProcessingSteps:
@@ -65,7 +66,7 @@ class ConfigProcessingSteps:
     Determines which processing steps should be enabled
     """
     create_json: bool = False
-    create_pickle: bool = True
+    create_pickle: bool = False
     create_models: bool = False
     run_evaluation: bool = True
 
@@ -78,18 +79,23 @@ def run_create_pickle(config):
     import neural_code_completion.preprocess_code.get_non_terminal_with_location as processor
     train_filename = config.dir_json_data + config.py_json_90k
     test_filename = config.dir_json_data + config.py_json_10k
-    target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal_fake
+    target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
 
-    # todo: REPLACE back train_filename=train_filename after testing!
-    # processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
-    processor.main(train_filename=test_filename, test_filename=test_filename, target_filename= target_filename)
+    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
+    # REPLACE back train_filename=train_filename after testing!
+    #processor.main(train_filename=test_filename, test_filename=test_filename, target_filename= target_filename)
 
 def run_create_models(config):
     pass
 
 def run_evaluation(config):
-    pass
+    import Evaluation.evaluation_with_loc as evaluation_processor
+    py_pickle_eval_nonterminal_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
+    py_pickle_eval_terminal_filename = config.dir_pickle + config.py_pickle_eval_terminal
+    py_model_tf_filename = config.dir_models + config.py_model_tf_phog_debug
 
+    evaluation_processor.main(py_pickle_eval_nonterminal_filename, py_pickle_eval_terminal_filename,
+                                                     py_model_tf_filename)
 
 
 ### Overall execution

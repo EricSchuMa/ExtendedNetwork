@@ -172,26 +172,16 @@ def get_config():
         raise ValueError("Invalid model: %s", FLAGS.model)
 
 
-#######################################
-if __name__ == '__main__':
+def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf):
+    global FLAGS, eval_config, eval_config
     setup_tensorflow()
-    logging = tf.logging
+    # logging = tf.logging
     FLAGS = tf.app.flags.FLAGS
-
-    # Assume that the working dir is the root project folder (i.e. 1 above "neural_code_completion")
-    data_dir_path = 'neural_code_completion/pickle_data/'
-    N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_with_location_fake.pickle')
-    # N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_dev.pickle')
-    T_filename_EN = os.path.join(data_dir_path, 'PY_terminal_1k_extended_dev.pickle')
-    N_filename_PMN = os.path.join(data_dir_path, 'PY_non_terminal.pickle')
-    T_filename_PMN = os.path.join(data_dir_path, 'PY_terminal_1k_whole.pickle')
-
     # Load data
     train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
     train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = \
-        reader_EN.input_data(N_filename_EN, T_filename_EN)
-
-    train_data_ext_network = (train_data_nonterminal, train_data_terminal)
+        reader_EN.input_data(py_pickle_eval_nonterminal, py_pickle_eval_terminal)
+    # train_data_ext_network = (train_data_nonterminal, train_data_terminal)
     valid_data_ext_network = (validation_data_nonterminal, validation_data_terminal)
     vocab_size_ext_network = (vocab_sizeN + 1, vocab_sizeT + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
 
@@ -200,12 +190,23 @@ if __name__ == '__main__':
     eval_config.hogWeight = 1.0
     eval_config.vocab_size = vocab_size_ext_network
     eval_config.num_layers = 2
-
     # %%
     # Evaluating the Extended Network
-    cm_debug = create_confusion_matrix(valid_data_ext_network, 'neural_code_completion/models/logs/2020-01-08-PMN--0/PMN--0', eval_config)
+    cm_debug = create_confusion_matrix(valid_data_ext_network, py_model_tf, eval_config)
     plot_confusion_matrix(cm_debug.astype(int)[:3], ["hogID", "unkID", "normal ID", "wrong normal ID"], normalize=True)
     plt.show()
+
+
+##
+if __name__ == '__main__':
+    # Assume that the working dir is the root project folder (i.e. 1 above "neural_code_completion")
+    data_dir_path = 'neural_code_completion/pickle_data/'
+    N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_with_location_fake.pickle')
+    # N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_dev.pickle')
+    T_filename_EN = os.path.join(data_dir_path, 'PY_terminal_1k_extended_dev.pickle')
+    py_model_tf = 'neural_code_completion/models/logs/2020-01-08-PMN--0/PMN--0'
+
+    main(N_filename_EN, T_filename_EN, py_model_tf)
 
 
 def unused_code_evaluation_ext_network():
@@ -250,6 +251,9 @@ def unused_code_evaluation_ext_network():
 
 # Evaluating the original network
 def unused_code_evaluation_original_network():
+    N_filename_PMN = os.path.join(data_dir_path, 'PY_non_terminal.pickle')
+    T_filename_PMN = os.path.join(data_dir_path, 'PY_terminal_1k_whole.pickle')
+
     train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
     train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = reader_PMN.input_data(N_filename_PMN,
                                                                                                   T_filename_PMN)
