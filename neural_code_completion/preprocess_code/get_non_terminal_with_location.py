@@ -90,7 +90,7 @@ class ProcessorForNonTerminals(object):
         for line_id in data:
             line_new_id = list()
             for i in line_id:
-                if i in self.dicID.keys():
+                if i in self.dicID:
                     line_new_id.append(self.dicID[i])
                 else:
                     self.dicID[i] = len(self.dicID)
@@ -139,7 +139,7 @@ class ProcessorForNonTerminals(object):
             }
             pickle.dump(save, f, protocol=2)
 
-    def process_all_and_save(self, train_filename, test_filename, target_filename):
+    def process_all_and_save(self, train_filename, test_filename, target_filename, useFakeTestData=False):
         print('Start procesing %s' % (train_filename))
         trainData, trainParent = self.process_file(train_filename)
         print('Start procesing %s' % (test_filename))
@@ -151,7 +151,14 @@ class ProcessorForNonTerminals(object):
         empty_set_dense, vocab_size = self.get_empty_set_dense()
 
         print("Saving results ...")
-        self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
+        if useFakeTestData:
+            fakeTestBase = 10000
+            testDataFake = list(range(fakeTestBase, fakeTestBase + len(testData)))
+            fakeParentBase = 100000
+            testParentFake = list(range(fakeParentBase, fakeParentBase + len(testParent)))
+            self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParentFake, empty_set_dense)
+        else:
+            self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense)
         print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
         print('The vocabulary:', vocab_size, self.all_sparse_IDs)
 
@@ -162,8 +169,10 @@ if __name__ == '__main__':
     train_filename = '../../data/python100k_train.json'
     test_filename = '../../data/python50k_eval.json'
     target_filename = '../pickle_data/PY_non_terminal_with_location.pickle'
+    target_filename_fake = '../pickle_data/PY_non_terminal_with_location_fake.pickle'
 
     start_time = time.time()
     processor = ProcessorForNonTerminals()
-    processor.process_all_and_save(train_filename, test_filename, target_filename)
+    # processor.process_all_and_save(train_filename, test_filename, target_filename)
+    processor.process_all_and_save(train_filename, test_filename, target_filename_fake, useFakeTestData=True)
     print('Finished generating terminals. It took %.2fs' % (time.time() - start_time))
