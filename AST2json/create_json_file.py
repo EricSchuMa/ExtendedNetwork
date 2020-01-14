@@ -35,14 +35,18 @@ if __name__ == "__main__":
         #             fout_test.write("\n")
 
         with open(train_data) as train_files:
+            idx = 0
             for train_file in train_files:
-                train_file = train_file.rstrip()
-                train_file = unicode(train_file, encoding='utf-8', errors='ignore')
-                train_id = get_file_id(train_file, False)
-                print("Train: {}".format(train_id))
-                with open(target_train_file, "a") as fout_train:
-                    fout_train.write(parse_file(train_file, train_id))
-                    fout_train.write("\n")
+                if idx >= 43780:
+                    train_file = train_file.rstrip()
+                    train_file = unicode(train_file, encoding='utf-8', errors='ignore')
+                    train_id = get_file_id(train_file, False)
+                    print("Train: {}".format(train_id))
+                    with open(target_train_file, "a") as fout_train:
+                        fout_train.write(parse_file(train_file, train_id))
+                        fout_train.write("\n")
+                else:
+                    idx += 1
 
     except (UnicodeEncodeError, UnicodeDecodeError):
         pass
