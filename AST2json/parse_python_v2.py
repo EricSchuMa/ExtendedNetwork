@@ -158,7 +158,7 @@ def parse_file(filename, file_id):
 
 if __name__ == "__main__":
     try:
-        filename = "data/pimutils/khal/tests/aux_fake.py"
+        filename = "data/ummahusla/Codecademy-Exercise-Answers/Language Skills/Python/Unit 7/2-Battleship!/Hit or Miss/10-You Win!.py"
         print(parse_file(filename, 0))
         print(type(parse_file(filename,0)))
     except (UnicodeEncodeError, UnicodeDecodeError):
