@@ -86,12 +86,14 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
             memory = np.zeros([model_valid.input.batch_size, model_valid.input.num_steps, model_valid.size])
 
             # tqdm shows "progress bar" in the cmd line
-            for step in tqdm(range(50)):
+            for step in tqdm(range(model_valid.input.epoch_size)):
                 feed_dict = create_feed_dict(model_valid, session, state, eof_indicator, memory)
 
                 probs, labels = session.run([model_valid.probs, model_valid.labels], feed_dict)
                 prediction = np.argmax(probs, 1)
                 new_labels, new_prediction = convert_labels_and_predictions(prediction, labels, hogID, unkID, is_extended)
+                print (f"## Step: {step}")
+                print (f"   len(prediction) = {len(prediction)}, len(labels) = {len(labels)}, len(new_labels) = {len(new_labels)}")
 
                 # add arrays to get true positives and true negatives
                 conf_matrix += confusion_matrix(new_labels, new_prediction)
@@ -201,74 +203,11 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf):
 if __name__ == '__main__':
     # Assume that the working dir is the root project folder (i.e. 1 above "neural_code_completion")
     data_dir_path = 'neural_code_completion/pickle_data/'
-    N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_with_location_fake.pickle')
-    # N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_dev.pickle')
+    # N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_with_location_fake.pickle')
+    N_filename_EN = os.path.join(data_dir_path, 'PY_non_terminal_dev.pickle')
     T_filename_EN = os.path.join(data_dir_path, 'PY_terminal_1k_extended_dev.pickle')
     py_model_tf = 'neural_code_completion/models/logs/2020-01-08-PMN--0/PMN--0'
 
     main(N_filename_EN, T_filename_EN, py_model_tf)
 
 
-def unused_code_evaluation_ext_network():
-    # cm_boosted = create_confusion_matrix(valid_data_ext_network, 'models/logs/boosted_hog/PMN--4', eval_config)
-    # cm_less = create_confusion_matrix(valid_data_ext_network, 'models/logs/less_hog/PMN--2', eval_config)
-    # cm_2_layer_20 = create_confusion_matrix(valid_data_ext_network, 'models/logs/extended_dev_20_drop_2_layer/PMN--7', eval_config)
-
-    # %%
-    # Prepare parameters for a 1 layer model
-    one_layer_config = eval_config
-    one_layer_config.num_layers = 1
-    # cm_1_layer_wo_drop = create_confusion_matrix(valid_data_ext_network, 'models/logs/extended_dev_without_drop/PMN--7', one_layer_config)
-
-    # %%
-    # plot_confusion_matrix(cm_less.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-    # plot_confusion_matrix(cm_boosted.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-
-    # %%
-    # plot_confusion_matrix(cm_1_layer_wo_drop.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-    # plot_confusion_matrix(cm_2_layer_20.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-
-    # %%
-    precision_baseline_hog = 4378 / (4378 + 11352)
-    precision_2layer_hog = 4499 / (4499 + 10560)
-
-    precision_2layer_normal = 195130 / (195130 + 67608 + 10560)
-    precision_baseline_normal = 188535 / (73411 + 188535 + 11352)
-
-    # print(precision_baseline)
-    # print(precision_2layer)
-
-    print(precision_baseline_normal)
-    print(precision_2layer_normal)
-
-    # %%
-    # plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=False)
-
-    # %%
-    # plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"])
-    # plot_confusion_matrix(cm.astype(int)[:3], ["hogID","unkID","normal ID","wrong normal ID"], normalize=True)
-    # plt.show()
-
-# Evaluating the original network
-def unused_code_evaluation_original_network():
-    N_filename_PMN = os.path.join(data_dir_path, 'PY_non_terminal.pickle')
-    T_filename_PMN = os.path.join(data_dir_path, 'PY_terminal_1k_whole.pickle')
-
-    train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
-    train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = reader_PMN.input_data(N_filename_PMN,
-                                                                                                  T_filename_PMN)
-
-    train_data_PMN = (train_data_nonterminal, train_data_terminal)
-    valid_data_PMN = (validation_data_nonterminal, validation_data_terminal)
-    vocab_size_PMN = (vocab_sizeN + 1, vocab_sizeT + 2)  # N is [w, eof], T is [w, unk_id, eof]
-    eval_config = get_config()
-    eval_config.vocab_size = vocab_size_PMN
-    eval_config.num_layers = 1
-
-    cm = create_confusion_matrix(valid_data_PMN, 'models/logs/vanilla_pmn_train_test/PMN--6',
-                                 eval_config, is_extended=False)
-
-    # %%
-    plot_confusion_matrix(cm[:2].astype(int), ["unkID", ["normalID"], ["wrong normal ID"]])
-    plot_confusion_matrix(cm[:2].astype(int), ["unkID", ["normalID"], ["wrong normal ID"]], normalize=True)
-    plt.show()

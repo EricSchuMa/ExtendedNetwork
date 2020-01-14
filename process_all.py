@@ -52,8 +52,8 @@ class ConfigDebug(ConfigDefaults):
     # py_json_10k
 
     # Pickle files used for result evaluation ("validation")
-    # py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
-    py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_fake.pickle'
+    py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
+    # py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_fake.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
     # Files used for creating models
@@ -66,9 +66,9 @@ class ConfigProcessingSteps:
     Determines which processing steps should be enabled
     """
     create_json: bool = False
-    create_pickle: bool = False
+    create_pickle: bool = True
     create_models: bool = False
-    run_evaluation: bool = True
+    run_evaluation: bool = False
 
 #%%
 ### Functions for individual steps
@@ -82,8 +82,6 @@ def run_create_pickle(config):
     target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
 
     processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
-    # REPLACE back train_filename=train_filename after testing!
-    #processor.main(train_filename=test_filename, test_filename=test_filename, target_filename= target_filename)
 
 def run_create_models(config):
     pass

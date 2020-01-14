@@ -99,7 +99,10 @@ def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change
         temp_len = len(long_lineN)
         # print ('\nthe original data length is %d' %temp_len)
         n = temp_len // (batch_size * num_steps)
+        # long_lineN_truncated contains as 1 row all nonterminal input (i.e. keys if encoder used) + padding
+        # long_lines are truncated to batch_size * num_steps
         long_lineN_truncated = np.array(long_lineN[0 : n * (batch_size * num_steps)])
+        # both .._x and _y are identical - is this ok?
         long_lineT_truncated_x = np.array(long_lineT[0 : n * (batch_size * num_steps)])
         long_lineT_truncated_y = np.array(long_lineT[0 : n * (batch_size * num_steps)])
 

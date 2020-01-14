@@ -1,118 +1,152 @@
 ## Changed by Artur Andrzejak on 10-01-2020
 # 1. Refactored
 # 2. Added information about location to each AST node
-
+from dataclasses import dataclass
 from six.moves import cPickle as pickle
 import json
-import time
 from collections import Counter, defaultdict
-import copy
-import itertools
+
+
 
 
 class ProcessorForNonTerminals(object):
+    MAX_NODES_PER_AST = 3e4
 
     def __init__(self):
         # instance variables, previously were global vars
-        # map N's name into its original ID(before expanding into 4*base_ID)
-        # It is an autoincrementing ID table, see http://bit.ly/2QHVQyo
-        self.typeDict = defaultdict(lambda: len(self.typeDict))
-        self.all_sparse_IDs = set()  # the set to include all sparse ID
-        self.dicID = dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
-        self.ids_of_nodes_with_terminals = set()
 
-    def process_file(self, filename):
+        # Encoding of node types via consecutive integers
+        # (as a val-auto-incrementing default dict, see http://bit.ly/2QHVQyo)
+        self.nodeType_to_ID = defaultdict(lambda: len(self.nodeType_to_ID))
+        self.nodes_with_terminal_values = set()
+        self.set_all_IDs = set()  # the set to include all (sparse) ID
+        self.sparseIDs_to_denseIDs = dict()  # map sparse id to dense id (remove empty id inside 4*base_ID)
+
+    def process_file(self, filename: str):
         """
         Fills the type_dict and calculates the number of types.
-        Also converts AST terminal names to IDs (stored in typeDict) - contains information about children and siblings
+        Also converts AST terminal names to IDs (stored in nodeType_to_ID) - contains information about children and siblings
         :param filename: File to be processed
-        :return: corpus_N - IDs for N with information about children and siblings, corpus_parent - Offsets to parents
+        :return: corpus_node_encoding - IDs for N with information about children and siblings,
+                corpus_parent_offsets- Offset of each node to its parent (according to json file)
         """
         with open(filename, encoding='latin-1') as lines:
-            corpus_N = list()
-            corpus_parent = list()
+            corpus_node_encoding = list()
+            corpus_parent_offsets = list()
 
             for line_index, line in enumerate(lines):
                 if line_index % 1000 == 0:
                     print('Processing line: ', line_index)
 
-                line_N, parent_list = self._process_line(line)
-                if line_N:
-                    corpus_N.append(line_N)
-                    corpus_parent.append(parent_list)
-            return corpus_N, corpus_parent
+                ast_decoded = json.loads(line)
+                if len(ast_decoded) < ProcessorForNonTerminals.MAX_NODES_PER_AST:
+                    full_ast_encoding, parent_list = self.process_AST(ast_decoded)
+                    corpus_node_encoding.append(full_ast_encoding)
+                    corpus_parent_offsets.append(parent_list)
 
-    def _process_line(self, line):
-        data = json.loads(line)
-        if len(data) >= 3e4:
-            return None, None
+            return corpus_node_encoding, corpus_parent_offsets
 
-        line_N = list()
-        has_sibling = Counter()
-        parent_counter = defaultdict(lambda: 1)  # default parent is previous 1
-        parent_list = list()
+    def process_AST(self, ast_decoded: dict):
+        # Encodes type (+ info on children and siblings) of each ast node (result)
+        full_ast_encoding = list()
+        # Encodes offsets of this node to its parent (according to json line order) (result)
+        parent_offset_encoding = list()
+        # If node with index idx has siblings, we have nodeIdx_to_siblingFlag[idx] == 1
+        nodeIdx_to_siblingFlag = Counter()
+        # for node with index idx,  nodeIdx_to_parentOffset[idx] = offset of node to parent par_idx (i.e. idx - par_idx)
+        nodeIdx_to_parentOffset = defaultdict(lambda: 1)  # default parent is previous 1
 
-        for i, dic in enumerate(data):  # JS data[:-1] or PY data
-            typeName = dic['type']
-            # This is an auto-incrementing default dict
-            base_ID = self.typeDict[typeName]
+        for node_idx, node_elements in enumerate(ast_decoded):
+            typeName = node_elements['type']
+            # For each unknown key, insert new value:= len(dict) (i.e. new vals are n, n+1, ...)
+            base_ID = self.nodeType_to_ID[typeName]
 
-            # expand the ID into the range of 4*base_ID, according to whether it has sibling or children.
-            # Sibling information is got by the ancestor's children information
+            has_children = 'children' in node_elements
+            has_sibling = nodeIdx_to_siblingFlag[node_idx] > 0
+            ID = self.encode_sibling_and_children_info(base_ID, has_children, has_sibling)
 
-            if 'children' in dic:
-                if has_sibling[i]:
-                    ID = base_ID * 4 + 3
-                else:
-                    ID = base_ID * 4 + 2
+            # Update infos for children of this node
+            if has_children:
+                children = node_elements['children']
+                self.update_siblings_dict(children, nodeIdx_to_siblingFlag)
+                self.update_parent_offset_dict(children, nodeIdx_to_parentOffset, node_idx)
 
-                childs = dic['children']
-                for j in childs:
-                    parent_counter[j] = j - i
+            # record node IDs which have a non-empty Terminal
+            if 'value' in node_elements:
+                self.nodes_with_terminal_values.add(ID)
 
-                if len(childs) > 1:
-                    for j in childs:
-                        has_sibling[j] = 1
-            else:
-                if has_sibling[i]:
-                    ID = base_ID * 4 + 1
-                else:
-                    ID = base_ID * 4
-            # record the Non-terminals which have a non-empty Terminal
-            if 'value' in dic:
-                self.ids_of_nodes_with_terminals.add(ID)
+            full_ast_encoding.append(ID)
+            parent_offset_encoding.append(nodeIdx_to_parentOffset[node_idx])
+            self.set_all_IDs.add(ID)
 
-            line_N.append(ID)
-            parent_list.append(parent_counter[i])
-            self.all_sparse_IDs.add(ID)
-        return line_N, parent_list
+        return full_ast_encoding, parent_offset_encoding
 
-    def map_dense_id(self, data):
+    def update_parent_offset_dict(self, children, nodeIdx_to_parentOffset, node_idx):
+        for j in children:
+            nodeIdx_to_parentOffset[j] = j - node_idx
+
+    def update_siblings_dict(self, children, sibling_flags):
+        # Sibling information is got by the ancestor's children information
+        if len(children) > 1:
+            for j in children:
+                sibling_flags[j] = 1
+
+    def encode_sibling_and_children_info(self, base_ID, has_children_flag, has_sibling_flag):
+        """
+            Encodes info on siblings and children of this node into bit 0 and bit 1
+                * has sibling: bit 0 set to 1
+                * has children: bit 1 set to 1
+            In any case, the base_ID is becomes 4*base_ID
+        :return: 4*base_ID + info on siblings and children of this node in bit 0 and bit 1
+        """
+        result_id = base_ID * 4
+        result_id += 1 if has_sibling_flag else 0
+        result_id += 2 if has_children_flag else 0
+
+        # Following kept just as a reminiscence ...
+        # if has_children_flag:
+        #     if has_sibling_flag:
+        #         result_id = base_ID * 4 + 3
+        #     else:
+        #         result_id = base_ID * 4 + 2
+        # else:
+        #     if has_sibling_flag:
+        #         result_id = base_ID * 4 + 1
+        #     else:
+        #         result_id = base_ID * 4
+        return result_id
+
+    def map_dense_id(self, corpus_node_encoding_sparse_IDs):
+        """
+        Create a new "non-terminal data" encoding, removing all gaps bw existing IDs
+        :param corpus_node_encoding_sparse_IDs:
+        :return: A new encoding which uses all values 0, 1, ..., |# different IDs|
+        """
         result = list()
-        for line_id in data:
+        for line_id in corpus_node_encoding_sparse_IDs:
             line_new_id = list()
             for i in line_id:
-                if i in self.dicID:
-                    line_new_id.append(self.dicID[i])
+                if i in self.sparseIDs_to_denseIDs:
+                    line_new_id.append(self.sparseIDs_to_denseIDs[i])
                 else:
-                    self.dicID[i] = len(self.dicID)
-                    line_new_id.append(self.dicID[i])
+                    self.sparseIDs_to_denseIDs[i] = len(self.sparseIDs_to_denseIDs)
+                    line_new_id.append(self.sparseIDs_to_denseIDs[i])
             result.append(line_new_id)
         return result
 
     def get_empty_set_dense(self):
-        vocab_size = len(self.all_sparse_IDs)
-        assert len(self.dicID) == vocab_size
-        assert self.ids_of_nodes_with_terminals.issubset(self.all_sparse_IDs)
-        ids_of_nodes_without_terminals = self.all_sparse_IDs.difference(self.ids_of_nodes_with_terminals)
+        vocab_size = len(self.set_all_IDs)
+        assert len(self.sparseIDs_to_denseIDs) == vocab_size
+        assert self.nodes_with_terminal_values.issubset(self.set_all_IDs)
+        ids_of_nodes_without_terminals = self.set_all_IDs.difference(self.nodes_with_terminal_values)
         empty_set_dense = set()
-        # print('The dicID: %s' % dicID)
-        # print('The vocab_size: %s' % vocab_size)
+
         for i in ids_of_nodes_without_terminals:
-            empty_set_dense.add(self.dicID[i])
+            empty_set_dense.add(self.sparseIDs_to_denseIDs[i])
         return empty_set_dense, vocab_size
 
-    def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense, encoderTestData):
+    def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense,
+             encoderTestData):
         """
         :param filename: Name of destination (pickle file)
         :param vocab_size: the vocabulary size to restrict the number of words
@@ -122,16 +156,12 @@ class ProcessorForNonTerminals(object):
         :param testParent: Offsets to parent in testing set
         :param empty_set_dense: Dense set of non-terminals who can't have value
 
-        Used from fields:
-        typeDict: Dictionary for inferring types to IDs
-        numType: Number of total types
-        dicID: Maps sparse IDs to dense IDs
         """
         with open(filename, 'wb') as f:
             save = {
-                'typeDict': dict(self.typeDict),
-                'numType': len(self.typeDict),
-                'dicID': self.dicID,
+                'nodeType_to_ID': dict(self.nodeType_to_ID),
+                'numType': len(self.nodeType_to_ID),
+                'dicID': self.sparseIDs_to_denseIDs,
                 'vocab_size': vocab_size,
                 'trainData': trainData,
                 'testData': testData,
@@ -142,89 +172,27 @@ class ProcessorForNonTerminals(object):
             }
             pickle.dump(save, f, protocol=2)
 
-    def process_all_and_save(self, train_filename, test_filename, target_filename, useFakeTestData=False):
+    def process_all_and_save(self, train_filename, test_filename, target_filename):
         print('Start procesing %s' % (train_filename))
-        trainData, trainParent = self.process_file(train_filename)
+        train_data, train_parent_offsets = self.process_file(train_filename)
         print('Start procesing %s' % (test_filename))
-        testData, testParent = self.process_file(test_filename)
+        test_data, test_parent_offset = self.process_file(test_filename)
 
         # todo: clean up the following; some args should become instance fields
-        trainData = self.map_dense_id(trainData)
-        testData = self.map_dense_id(testData)
+        train_data = self.map_dense_id(train_data)
+        test_data = self.map_dense_id(test_data)
         empty_set_dense, vocab_size = self.get_empty_set_dense()
 
         print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
-        print('The vocabulary:', vocab_size, self.all_sparse_IDs)
+        print('The vocabulary:', vocab_size, self.set_all_IDs)
 
         print("Saving results ...")
-        if useFakeTestData:
-            encoderTestData = DataEncoder(base_integer=10000)
-            testDataFake = encoderTestData.encode(testData)
-            # encoderTestParent = DataEncoder(base_integer=100000)
-            # testParentFake = encoderTestParent.encode(testParent)
-            # self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParentFake, empty_set_dense)
 
-            self.save(target_filename, vocab_size, trainData, testDataFake, trainParent, testParent, empty_set_dense, encoderTestData)
-            return encoderTestData
-        else:
-            self.save(target_filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense, None)
-            return None
+        self.save(target_filename, vocab_size, train_data, test_data,
+                  train_parent_offsets, test_parent_offset, empty_set_dense, None)
+        return None
 
 
-
-class DataEncoder:
-    """
-    Encodes input data by unique integers (keys), and stores a mapping keys => original data.
-    Maintains the structure of the original data.
-    """
-
-    def __init__(self, base_integer=10000):
-        self.keys_to_original_values = dict()
-        self.base_integer = base_integer
-
-    def _transform(self, input_list_of_list, output_list_of_list, map_element_func, side_effect_func=None):
-        step_idx = 0
-        for outer_idx, outer_list in enumerate(input_list_of_list):
-            for inner_idx, inner_val in enumerate(outer_list):
-                key = map_element_func(inner_val, step_idx)
-                output_list_of_list[outer_idx][inner_idx] = key
-                if side_effect_func:
-                    side_effect_func(key=key, value=inner_val)
-                step_idx += 1
-        return output_list_of_list
-
-    def encode(self, original_values):
-        """
-        Recursively walks through input data, and for each entry creates a unique key, and stores (key, original_value)
-        in self.keys_to_original_values. Note: unique only "locally" in the input.
-        :param original_values: list of lists with original values
-        :return: data structure with same dims as input but entries replaced by unique keys
-        """
-
-        assert (isinstance(original_values, list))
-        assert (len(original_values) == 0 or isinstance(original_values[0], list))
-
-        def generate_next_key(value, step_idx):
-            return self.base_integer + step_idx
-
-        def dict_update(key, value):
-            self.keys_to_original_values[key] = value
-
-        output_list_of_lists = copy.deepcopy(original_values)
-        return self._transform(original_values, output_list_of_lists, map_element_func=generate_next_key,
-                               side_effect_func=dict_update)
-
-    def decode(self, encoded_values):
-        """
-        Returns a data structure of same shape as the encoded values, but each value replaced by
-        a corresponding entry from self.keys_to_original_values (i.e. kind of
-        :param encoded_values: list of lists with keys to original values
-        :return: data structure with same dims as input but keys (entries) replaced by values
-        """
-
-        output_list_of_lists = copy.deepcopy(encoded_values)
-        return self._transform(encoded_values, output_list_of_lists,
-                               map_element_func=lambda key, step_idx: self.keys_to_original_values[key])
 
 
 def main(train_filename, test_filename, target_filename) -> None:
@@ -236,13 +204,16 @@ def main(train_filename, test_filename, target_filename) -> None:
     """
     processor = ProcessorForNonTerminals()
     # processor.process_all_and_save(train_filename, test_filename, target_filename)
-    processor.process_all_and_save(train_filename, test_filename, target_filename, useFakeTestData=True)
+    processor.process_all_and_save(train_filename, test_filename, target_filename)
 
 
 if __name__ == '__main__':
     train_filename = '../../data/python100k_train.json'
     test_filename = '../../data/python50k_eval.json'
+    debug_filename = '../../data/python10_debug.json'
     target_filename = '../pickle_data/PY_non_terminal_with_location.pickle'
     target_filename_fake = '../pickle_data/PY_non_terminal_with_location_fake.pickle'
+    target_debug_filename_fake = '../pickle_data/PY_non_terminal_debug.pickle'
 
-    main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename_fake)
+#    main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename_fake)
+    main(train_filename=debug_filename, test_filename=debug_filename, target_filename=target_debug_filename_fake)

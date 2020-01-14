@@ -10,6 +10,9 @@ from collections import Counter, defaultdict
 train_filename = '../../data/python90k_train.json'
 test_filename = '../../data/python10k_dev.json'
 target_filename = '../pickle_data/PY_non_terminal_dev.pickle'
+#train_filename = '../../data/python10_debug.json'
+#test_filename = '../../data/python10_debug.json'
+#target_filename = '../pickle_data/PY_non_terminal_debug.pickle'
 
 # global variables
 typeDict = dict()  # map N's name into its original ID(before expanding into 4*base_ID)
