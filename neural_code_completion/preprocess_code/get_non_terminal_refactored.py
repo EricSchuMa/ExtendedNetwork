@@ -1,11 +1,10 @@
-## Changed by Artur Andrzejak on 10-01-2020
+## Changes by Artur Andrzejak (Jan 2020)
 # 1. Refactored
-# 2. Added information about location to each AST node
-from six.moves import cPickle as pickle
+
 import json
 from collections import Counter, defaultdict
 
-
+from six.moves import cPickle as pickle
 
 
 class ProcessorForNonTerminals(object):
@@ -59,14 +58,17 @@ class ProcessorForNonTerminals(object):
             typeName = node_elements['type']
             # For each unknown key, insert new value:= len(dict) (i.e. new vals are n, n+1, ...)
             base_ID = self.nodeType_to_ID[typeName]
+
             has_children = 'children' in node_elements
             has_sibling = nodeIdx_to_siblingFlag[node_idx] > 0
             ID = self.encode_sibling_and_children_info(base_ID, has_children, has_sibling)
+
             # Update infos for children of this node
             if has_children:
                 children = node_elements['children']
                 self.update_siblings_data(children, nodeIdx_to_siblingFlag)
                 self.update_parent_offsets(children, nodeIdx_to_parentOffset, node_idx)
+
             # record node IDs which have a non-empty Terminal
             if 'value' in node_elements:
                 self.nodes_with_terminal_values.add(ID)
@@ -98,6 +100,18 @@ class ProcessorForNonTerminals(object):
         result_id = base_ID * 4
         result_id += 1 if has_sibling_flag else 0
         result_id += 2 if has_children_flag else 0
+
+        # Following kept just as a reminiscence ...
+        # if has_children_flag:
+        #     if has_sibling_flag:
+        #         result_id = base_ID * 4 + 3
+        #     else:
+        #         result_id = base_ID * 4 + 2
+        # else:
+        #     if has_sibling_flag:
+        #         result_id = base_ID * 4 + 1
+        #     else:
+        #         result_id = base_ID * 4
         return result_id
 
     def map_dense_id(self, corpus_node_encoding_sparse_IDs):
