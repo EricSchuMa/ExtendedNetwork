@@ -32,6 +32,7 @@ class ProcessorForNonTerminals(object):
         with open(filename, encoding='latin-1') as lines:
             corpus_node_encoding = list()
             corpus_parent_offsets = list()
+            corpus_locations = list()
 
             for line_index, line in enumerate(lines):
                 if line_index % 1000 == 0:
@@ -39,11 +40,12 @@ class ProcessorForNonTerminals(object):
 
                 ast_decoded = json.loads(line)
                 if len(ast_decoded) < ProcessorForNonTerminals.MAX_NODES_PER_AST:
-                    full_ast_encoding, parent_list = self.process_AST(ast_decoded)
+                    full_ast_encoding, parent_offset_encoding, location_data = self.process_AST(ast_decoded)
                     corpus_node_encoding.append(full_ast_encoding)
-                    corpus_parent_offsets.append(parent_list)
+                    corpus_parent_offsets.append(parent_offset_encoding)
+                    corpus_locations.append(location_data)
 
-            return corpus_node_encoding, corpus_parent_offsets
+            return corpus_node_encoding, corpus_parent_offsets, corpus_locations
 
     def process_AST(self, ast_decoded: dict):
         # Encodes type (+ info on children and siblings) of each ast node (result)
@@ -54,6 +56,8 @@ class ProcessorForNonTerminals(object):
         nodeIdx_to_siblingFlag = Counter()
         # for node with index idx,  nodeIdx_to_parentOffset[idx] = offset of node to parent par_idx (i.e. idx - par_idx)
         nodeIdx_to_parentOffset = defaultdict(lambda: 1)  # default parent is previous 1
+        # Locations of each node, as tuples
+        location_data = list()
 
         for node_idx, node_elements in enumerate(ast_decoded):
             typeName = node_elements['type']
@@ -71,11 +75,13 @@ class ProcessorForNonTerminals(object):
             if 'value' in node_elements:
                 self.nodes_with_terminal_values.add(ID)
 
+            location_for_node = node_elements['location'] if 'location' in node_elements else [0,0,0]
+            location_data += location_for_node
             full_ast_encoding.append(ID)
             parent_offset_encoding.append(nodeIdx_to_parentOffset[node_idx])
             self.set_all_IDs.add(ID)
 
-        return full_ast_encoding, parent_offset_encoding
+        return full_ast_encoding, parent_offset_encoding, location_data
 
     def update_parent_offsets(self, children, nodeIdx_to_parentOffset, node_idx):
         for j in children:
@@ -130,17 +136,7 @@ class ProcessorForNonTerminals(object):
         return empty_set_dense, vocab_size
 
     def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense,
-             encoderTestData):
-        """
-        :param filename: Name of destination (pickle file)
-        :param vocab_size: the vocabulary size to restrict the number of words
-        :param trainData: Processed training data (mapped to respective IDs)
-        :param testData: Processed testing data (mapped to respective IDs)
-        :param trainParent: Offsets to parent in training set
-        :param testParent: Offsets to parent in testing set
-        :param empty_set_dense: Dense set of non-terminals who can't have value
-
-        """
+             encoderTestData, train_locations, test_locations):
         with open(filename, 'wb') as f:
             save = {
                 'nodeType_to_ID': dict(self.nodeType_to_ID),
@@ -152,15 +148,17 @@ class ProcessorForNonTerminals(object):
                 'trainParent': trainParent,
                 'testParent': testParent,
                 'typeOnlyHasEmptyValue': empty_set_dense,
-                'encoderTestData': encoderTestData
+                'encoderTestData': encoderTestData,
+                'train_locations': train_locations,
+                'train_locations': test_locations
             }
             pickle.dump(save, f, protocol=2)
 
     def process_all_and_save(self, train_filename, test_filename, target_filename):
         print('Start procesing %s' % (train_filename))
-        train_data, train_parent_offsets = self.process_file(train_filename)
+        train_data, train_parent_offsets, train_locations = self.process_file(train_filename)
         print('Start procesing %s' % (test_filename))
-        test_data, test_parent_offset = self.process_file(test_filename)
+        test_data, test_parent_offset, test_locations = self.process_file(test_filename)
 
         # todo: clean up the following; some args should become instance fields
         train_data = self.map_dense_id(train_data)
@@ -173,7 +171,8 @@ class ProcessorForNonTerminals(object):
         print("Saving results ...")
 
         self.save(target_filename, vocab_size, train_data, test_data,
-                  train_parent_offsets, test_parent_offset, empty_set_dense, None)
+                  train_parent_offsets, test_parent_offset, empty_set_dense,
+                  train_locations, test_locations, None)
         return None
 
 
@@ -195,9 +194,12 @@ if __name__ == '__main__':
     train_filename = '../../data/python100k_train.json'
     test_filename = '../../data/python50k_eval.json'
     debug_filename = '../../data/python10_debug.json'
+    py_json_90k: str = '../../data/python90k_train.json'
+    py_json_10k: str = '../../data/python10k_dev.json'
     target_filename = '../pickle_data/PY_non_terminal_with_location.pickle'
     target_filename_fake = '../pickle_data/PY_non_terminal_with_location_fake.pickle'
     target_debug_filename_fake = '../pickle_data/PY_non_terminal_debug.pickle'
 
 #    main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename_fake)
-    main(train_filename=debug_filename, test_filename=debug_filename, target_filename=target_debug_filename_fake)
+#    main(train_filename=debug_filename, test_filename=debug_filename, target_filename=target_debug_filename_fake)
+    main(train_filename=py_json_10k, test_filename=py_json_10k, target_filename=target_debug_filename_fake)

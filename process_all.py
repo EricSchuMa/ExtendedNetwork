@@ -53,7 +53,17 @@ class ConfigDebug(ConfigDefaults):
 
     # Pickle files used for result evaluation ("validation")
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
-    # py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_fake.pickle'
+    py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
+
+    # Files used for creating models
+    # todo: complete, if needed
+    py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
+
+class ConfigLocationData(ConfigDefaults):
+    """
+    Debugging configuration based on files used in the evaluation.py (received from Max ~6.01.2020) and evaluation_v02.py
+    """
+    py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
     # Files used for creating models
@@ -120,7 +130,8 @@ def run_all(configProcessingSteps, config):
 
 if __name__ == '__main__':
     configProcessingSteps = ConfigProcessingSteps()
-    config = ConfigDebug()
+    # config = ConfigDebug()
+    config = ConfigLocationData()
 
     start_time = time.time()
     print('Starting processing. Using configuration %s' % config)
