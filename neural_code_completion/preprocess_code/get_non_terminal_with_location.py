@@ -2,9 +2,9 @@
 # 1. Refactored
 # 2. Added information about location to each AST node
 from six.moves import cPickle as pickle
-import json
+import ujson
 from collections import Counter, defaultdict
-
+import copy
 
 
 
@@ -33,17 +33,22 @@ class ProcessorForNonTerminals(object):
             corpus_node_encoding = list()
             corpus_parent_offsets = list()
             corpus_locations = list()
+            # corpus_locations = dict()
 
             for line_index, line in enumerate(lines):
                 if line_index % 1000 == 0:
                     print('Processing line: ', line_index)
 
-                ast_decoded = json.loads(line)
+                ast_decoded = ujson.loads(line)
                 if len(ast_decoded) < ProcessorForNonTerminals.MAX_NODES_PER_AST:
                     full_ast_encoding, parent_offset_encoding, location_data = self.process_AST(ast_decoded)
                     corpus_node_encoding.append(full_ast_encoding)
                     corpus_parent_offsets.append(parent_offset_encoding)
+                    # todo: next line is a big memory problem - why?
                     corpus_locations.append(location_data)
+                    # corpus_locations[line_index] = location_data
+                    print (len(corpus_locations), corpus_locations.__sizeof__())
+                    # print (len(location_data), location_data.__sizeof__())
 
             return corpus_node_encoding, corpus_parent_offsets, corpus_locations
 
@@ -80,8 +85,8 @@ class ProcessorForNonTerminals(object):
             full_ast_encoding.append(ID)
             parent_offset_encoding.append(nodeIdx_to_parentOffset[node_idx])
             self.set_all_IDs.add(ID)
-
-        return full_ast_encoding, parent_offset_encoding, location_data
+        # print (location_data.__sizeof__())
+        return full_ast_encoding, parent_offset_encoding, copy.deepcopy(location_data)
 
     def update_parent_offsets(self, children, nodeIdx_to_parentOffset, node_idx):
         for j in children:
@@ -136,10 +141,10 @@ class ProcessorForNonTerminals(object):
         return empty_set_dense, vocab_size
 
     def save(self, filename, vocab_size, trainData, testData, trainParent, testParent, empty_set_dense,
-             encoderTestData, train_locations, test_locations):
+             train_locations, test_locations):
         with open(filename, 'wb') as f:
             save = {
-                'nodeType_to_ID': dict(self.nodeType_to_ID),
+                'typeDict': dict(self.nodeType_to_ID),
                 'numType': len(self.nodeType_to_ID),
                 'dicID': self.sparseIDs_to_denseIDs,
                 'vocab_size': vocab_size,
@@ -148,17 +153,20 @@ class ProcessorForNonTerminals(object):
                 'trainParent': trainParent,
                 'testParent': testParent,
                 'typeOnlyHasEmptyValue': empty_set_dense,
-                'encoderTestData': encoderTestData,
                 'train_locations': train_locations,
-                'train_locations': test_locations
+                'test_locations': test_locations
             }
             pickle.dump(save, f, protocol=2)
 
     def process_all_and_save(self, train_filename, test_filename, target_filename):
+        import gc
+        gc.disable()
         print('Start procesing %s' % (train_filename))
         train_data, train_parent_offsets, train_locations = self.process_file(train_filename)
+        gc.collect()
         print('Start procesing %s' % (test_filename))
         test_data, test_parent_offset, test_locations = self.process_file(test_filename)
+        gc.collect()
 
         # todo: clean up the following; some args should become instance fields
         train_data = self.map_dense_id(train_data)
@@ -172,7 +180,7 @@ class ProcessorForNonTerminals(object):
 
         self.save(target_filename, vocab_size, train_data, test_data,
                   train_parent_offsets, test_parent_offset, empty_set_dense,
-                  train_locations, test_locations, None)
+                  train_locations, test_locations)
         return None
 
 
@@ -191,6 +199,7 @@ def main(train_filename, test_filename, target_filename) -> None:
 
 
 if __name__ == '__main__':
+
     train_filename = '../../data/python100k_train.json'
     test_filename = '../../data/python50k_eval.json'
     debug_filename = '../../data/python10_debug.json'
