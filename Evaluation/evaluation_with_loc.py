@@ -135,7 +135,7 @@ def log_predictions_with_locations(result_logger, count_of_predictions, step, te
         line_dict["file_id"] = locations_longline[global_location_idx]
         line_dict["src_line"] = locations_longline[global_location_idx+1]
         line_dict["ast_node_idx"] = locations_longline[global_location_idx+2]
-        result_logger.writerow()
+        result_logger.writerow(line_dict)
 
         # print ("%d, %d, %d, %d, %d, %d, %d, %d, %d" %
         #        (global_row_idx, step, test_terminal_longline[global_row_idx],
