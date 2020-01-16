@@ -76,9 +76,9 @@ class ConfigProcessingSteps:
     Determines which processing steps should be enabled
     """
     create_json: bool = False
-    create_pickle: bool = True
+    create_pickle: bool = False
     create_models: bool = False
-    run_evaluation: bool = False
+    run_evaluation: bool = True
 
 #%%
 ### Functions for individual steps

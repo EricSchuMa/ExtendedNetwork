@@ -33,7 +33,6 @@ class ProcessorForNonTerminals(object):
             corpus_node_encoding = list()
             corpus_parent_offsets = list()
             corpus_locations = list()
-            # corpus_locations = dict()
 
             for line_index, line in enumerate(lines):
                 if line_index % 1000 == 0:
@@ -44,11 +43,8 @@ class ProcessorForNonTerminals(object):
                     full_ast_encoding, parent_offset_encoding, location_data = self.process_AST(ast_decoded)
                     corpus_node_encoding.append(full_ast_encoding)
                     corpus_parent_offsets.append(parent_offset_encoding)
-                    # todo: next line is a big memory problem - why?
                     corpus_locations.append(location_data)
-                    # corpus_locations[line_index] = location_data
-                    print (len(corpus_locations), corpus_locations.__sizeof__())
-                    # print (len(location_data), location_data.__sizeof__())
+                    # print (len(corpus_locations), corpus_locations.__sizeof__())
 
             return corpus_node_encoding, corpus_parent_offsets, corpus_locations
 

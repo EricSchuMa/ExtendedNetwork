@@ -66,7 +66,7 @@ def create_feed_dict(mvalid, session, state, eof_indicator, memory):
     return feed_dict
 
 
-def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=None, is_extended=True):
+def create_confusion_matrix(valid_data, checkpoint, eval_config, locations=None, class_indices=None, is_extended=True):
     cm_size, unkID, hogID = prepare_cm_constants(is_extended=is_extended)
     conf_matrix = np.zeros(shape=(cm_size, cm_size))
 
@@ -180,24 +180,54 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf):
     # logging = tf.logging
     FLAGS = tf.app.flags.FLAGS
     # Load data
-    train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
-    train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = \
-        reader_EN.input_data(py_pickle_eval_nonterminal, py_pickle_eval_terminal)
+    # return train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size
+    #
+    # train_data_nonterminal, validation_data_nonterminal, vocab_sizeN, \
+    # train_data_terminal, validation_data_terminal, vocab_sizeT, attn_size = \
+    #     reader_EN.input_data(py_pickle_eval_nonterminal, py_pickle_eval_terminal)
     # train_data_ext_network = (train_data_nonterminal, train_data_terminal)
-    valid_data_ext_network = (validation_data_nonterminal, validation_data_terminal)
-    vocab_size_ext_network = (vocab_sizeN + 1, vocab_sizeT + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
+    data = reader_EN.get_input_data_as_dict(py_pickle_eval_nonterminal, py_pickle_eval_terminal)
+    valid_data_ext_network = (data['test_dataN'], data['test_dataT'])
+    vocab_size_ext_network = (data['vocab_sizeN'] + 1, data['vocab_sizeT'] + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
+    location_data = data['test_locations']
+    print (f"Length of location data is: {len(location_data)}")
 
     # Prepare parameters for a 2 layer model
     eval_config = get_config()
     eval_config.hogWeight = 1.0
     eval_config.vocab_size = vocab_size_ext_network
     eval_config.num_layers = 2
-    # %%
+
+    location_converted = transform_location_data_by_padding(location_data, eval_config)
+
     # Evaluating the Extended Network
-    cm_debug = create_confusion_matrix(valid_data_ext_network, py_model_tf, eval_config)
+    cm_debug = create_confusion_matrix(valid_data_ext_network, py_model_tf, eval_config, locations=location_converted)
     plot_confusion_matrix(cm_debug.astype(int)[:3], ["hogID", "unkID", "normal ID", "wrong normal ID"], normalize=True)
     plt.show()
 
+
+
+def transform_location_data_by_padding(location_data, eval_config):
+
+    # Taken from neural_code_completion/models/reader_pointer_extended.py:93
+    # To reformat location data in the same way
+    def padding_and_concat(data, width, pad_id):
+        # the size of data: a list of list. This function will pad the data according to width
+        long_line = list()
+        for line in data:
+            pad_len = width - (len(line) % width)
+            new_line = line + [pad_id] * pad_len
+            assert len(new_line) % width == 0
+            long_line += new_line
+        return long_line
+
+    #todo: convert location data to 3 datastructures or list of lists of 3-tuples; or pad with 3*width
+    (vocab_sizeN, vocab_sizeT) = eval_config.vocab_size
+    eof_N_id = vocab_sizeN - 1
+    num_steps = eval_config.num_steps
+    location_transformed = padding_and_concat(data=location_data, width=num_steps, pad_id=eof_N_id)
+
+    return location_transformed
 
 ##
 if __name__ == '__main__':
@@ -209,5 +239,4 @@ if __name__ == '__main__':
     py_model_tf = 'neural_code_completion/models/logs/2020-01-08-PMN--0/PMN--0'
 
     main(N_filename_EN, T_filename_EN, py_model_tf)
-
 

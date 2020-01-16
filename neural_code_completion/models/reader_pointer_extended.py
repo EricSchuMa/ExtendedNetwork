@@ -15,16 +15,16 @@ from collections import Counter
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 
-def input_data(N_filename, T_filename):
+def input_data(nonterminal_data_filename, terminal_data_filename):
     """
     Read data from ID format
-    :param N_filename: contains the IDs for the types of each node including sibling and children information
-    :param T_filename: contains the terminal_dict and IDs for every node. unk keyword if ID isn't available
+    :param nonterminal_data_filename: contains the IDs for the types of each node including sibling and children information
+    :param terminal_data_filename: contains the terminal_dict and IDs for every node. unk keyword if ID isn't available
     :return: training and testing data, including vocab_sizes and attn_size (important for terminal)
     """
     start_time = time.time()
-    with open(N_filename, 'rb') as f:
-        print("reading data from ", N_filename)
+    with open(nonterminal_data_filename, 'rb') as f:
+        print("reading data from ", nonterminal_data_filename)
         save = pickle.load(f)
         train_dataN = save['trainData']
         test_dataN = save['testData']
@@ -33,8 +33,8 @@ def input_data(N_filename, T_filename):
         print('the number of training data is %d' %(len(train_dataN)))
         print('the number of test data is %d\n' %(len(test_dataN)))
 
-    with open(T_filename, 'rb') as f:
-        print("reading data from ", T_filename)
+    with open(terminal_data_filename, 'rb') as f:
+        print("reading data from ", terminal_data_filename)
         save = pickle.load(f)
         train_dataT = save['trainData']
         test_dataT = save['testData']
@@ -47,6 +47,33 @@ def input_data(N_filename, T_filename):
         print('Finish reading data and take %.2f\n'%(time.time()-start_time))
 
     return train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size
+
+def get_input_data_as_dict(nonterminal_data_filename, terminal_data_filename):
+    """
+    Read data from ID format
+    :param nonterminal_data_filename: contains the IDs for the types of each node including sibling and children information
+    :param terminal_data_filename: contains the terminal_dict and IDs for every node. unk keyword if ID isn't available
+    :return: dictionary with training and testing data, including vocab_sizes and attn_size (important for terminal)
+    """
+    start_time = time.time()
+    data = dict()
+    with open(nonterminal_data_filename, 'rb') as f:
+        print("reading data from ", nonterminal_data_filename)
+        save = pickle.load(f)
+        data['train_dataN'] = save['trainData']
+        data['test_dataN'] = save['testData']
+        data['vocab_sizeN'] = save['vocab_size']
+        data['train_locations'] = save['train_locations'] if 'train_locations' in save else None
+        data['test_locations'] = save['test_locations'] if 'test_locations' in save else None
+
+    with open(terminal_data_filename, 'rb') as f:
+        print("reading data from ", terminal_data_filename)
+        save = pickle.load(f)
+        data['train_dataT'] = save['trainData']
+        data['test_dataT'] = save['testData']
+        data['vocab_sizeT'] = save['vocab_size']
+        data['attn_size'] = save['attn_size']
+    return data
 
 
 def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change_yT=False, name=None, verbose=False):
