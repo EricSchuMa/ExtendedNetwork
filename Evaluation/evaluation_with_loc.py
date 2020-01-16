@@ -256,7 +256,7 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logge
 
 
 def prepare_result_logger(logger_filename=None):
-    logging_file = open(logger_filename, mode='w', encoding='utf-8')
+    logging_file = open(logger_filename, mode='w', encoding='utf-8', newline='')
     fieldnames = ["global_index", "step", "orig_test_data", "label", "prediction", "new_prediction",
                   "file_id", "src_line", "ast_node_idx"]
 
