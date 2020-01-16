@@ -7,14 +7,15 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import models.reader_pointer_extended as reader_EN
-import models.reader_pointer_original as reader_PMN
 
 from models.config import SmallConfig, TestConfig, BestConfig
 from models.extendedNetwork import EN, ENInput
 from models.pointerMixture import PMN, PMNInput
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix
+import csv
 
+LOCATION_ENTRIES_PER_INPUT_ENCODING = 3
 
 def prepare_cm_constants(is_extended: bool):
     if is_extended:
@@ -66,7 +67,9 @@ def create_feed_dict(mvalid, session, state, eof_indicator, memory):
     return feed_dict
 
 
-def create_confusion_matrix(valid_data, checkpoint, eval_config, locations=None, class_indices=None, is_extended=True):
+def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=None, is_extended=True,
+                            test_terminal_longline=None, locations_longline=None, result_logger=None):
+
     cm_size, unkID, hogID = prepare_cm_constants(is_extended=is_extended)
     conf_matrix = np.zeros(shape=(cm_size, cm_size))
 
@@ -85,21 +88,60 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, locations=None,
             eof_indicator = np.ones(model_valid.input.batch_size, dtype=bool)
             memory = np.zeros([model_valid.input.batch_size, model_valid.input.num_steps, model_valid.size])
 
+            count_of_predictions = 0
+
             # tqdm shows "progress bar" in the cmd line
             for step in tqdm(range(model_valid.input.epoch_size)):
                 feed_dict = create_feed_dict(model_valid, session, state, eof_indicator, memory)
 
-                probs, labels = session.run([model_valid.probs, model_valid.labels], feed_dict)
-                prediction = np.argmax(probs, 1)
-                new_labels, new_prediction = convert_labels_and_predictions(prediction, labels, hogID, unkID, is_extended)
-                print (f"## Step: {step}")
-                print (f"   len(prediction) = {len(prediction)}, len(labels) = {len(labels)}, len(new_labels) = {len(new_labels)}")
+                probs_vec, labels_vec = session.run([model_valid.probs, model_valid.labels], feed_dict)
+                predictions_vec = np.argmax(probs_vec, 1)
+                new_labels_vec, new_predictions_vec = \
+                    convert_labels_and_predictions(predictions_vec, labels_vec, hogID, unkID, is_extended)
 
                 # add arrays to get true positives and true negatives
-                conf_matrix += confusion_matrix(new_labels, new_prediction)
+                conf_matrix += confusion_matrix(new_labels_vec, new_predictions_vec)
+
+                log_predictions_with_locations(result_logger, count_of_predictions, step,
+                                               test_terminal_longline, locations_longline, predictions_vec,
+                                               labels_vec, new_labels_vec, new_predictions_vec)
+                count_of_predictions += len(predictions_vec)
     return conf_matrix
 
 
+def log_predictions_with_locations(result_logger, count_of_predictions, step, test_terminal_longline, locations_longline,
+                                   predictions_vec, labels_vec, new_labels_vec, new_predictions_vec):
+    print (f"## Step: {step}")
+    print (f"   len(prediction) = {len(predictions_vec)}, len(labels) = {len(labels_vec)}, len(new_labels) = {len(new_labels_vec)}")
+
+    slice_size = len(predictions_vec)
+    data_start = count_of_predictions
+    line_dict = dict()
+
+    # print ("################################################################################################")
+    # print ("global_index, step, orig_test_data, label, prediction, new_prediction, file_id, src_line, ast_node_idx")
+    for local_row_idx in range(slice_size):
+        global_row_idx = data_start + local_row_idx
+        global_location_idx = global_row_idx * LOCATION_ENTRIES_PER_INPUT_ENCODING
+
+        line_dict["global_index"] = global_row_idx
+        line_dict["step"] = step
+
+        line_dict["orig_test_data"] = test_terminal_longline[global_row_idx]
+        line_dict["label"] = labels_vec[local_row_idx]
+        line_dict["prediction"] = predictions_vec[local_row_idx]
+        line_dict["new_prediction"] = new_predictions_vec[local_row_idx]
+
+        line_dict["file_id"] = locations_longline[global_location_idx]
+        line_dict["src_line"] = locations_longline[global_location_idx+1]
+        line_dict["ast_node_idx"] = locations_longline[global_location_idx+2]
+        result_logger.writerow()
+
+        # print ("%d, %d, %d, %d, %d, %d, %d, %d, %d" %
+        #        (global_row_idx, step, test_terminal_longline[global_row_idx],
+        #         labels_vec[local_row_idx], predictions_vec[local_row_idx], new_predictions_vec[local_row_idx],
+        #         locations_longline[global_location_idx], locations_longline[global_location_idx+1],
+        #         locations_longline[global_location_idx+2]))
 
 
 def plot_confusion_matrix(conf, classes, normalize=False, title=None, cmap=plt.cm.Blues):
@@ -174,7 +216,7 @@ def get_config():
         raise ValueError("Invalid model: %s", FLAGS.model)
 
 
-def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf):
+def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logger_filename=None):
     global FLAGS, eval_config, eval_config
     setup_tensorflow()
     # logging = tf.logging
@@ -189,8 +231,7 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf):
     data = reader_EN.get_input_data_as_dict(py_pickle_eval_nonterminal, py_pickle_eval_terminal)
     valid_data_ext_network = (data['test_dataN'], data['test_dataT'])
     vocab_size_ext_network = (data['vocab_sizeN'] + 1, data['vocab_sizeT'] + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
-    location_data = data['test_locations']
-    print (f"Length of location data is: {len(location_data)}")
+
 
     # Prepare parameters for a 2 layer model
     eval_config = get_config()
@@ -198,20 +239,50 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf):
     eval_config.vocab_size = vocab_size_ext_network
     eval_config.num_layers = 2
 
-    location_converted = transform_location_data_by_padding(location_data, eval_config)
+    test_data_terminal_transformed, location_data_transformed = \
+        pad_and_reshape_to_longline(eval_config, data['test_dataT'], data['test_locations'])
+
+    logger_filename = 'results_log.csv' if logger_filename is None else logger_filename
+    result_logger, logging_file = prepare_result_logger(logger_filename)
 
     # Evaluating the Extended Network
-    cm_debug = create_confusion_matrix(valid_data_ext_network, py_model_tf, eval_config, locations=location_converted)
+    cm_debug = create_confusion_matrix(valid_data_ext_network, py_model_tf, eval_config,
+                                       test_terminal_longline=test_data_terminal_transformed,
+                                       locations_longline=location_data_transformed, result_logger=result_logger)
+    logging_file.close()
+
     plot_confusion_matrix(cm_debug.astype(int)[:3], ["hogID", "unkID", "normal ID", "wrong normal ID"], normalize=True)
     plt.show()
 
 
+def prepare_result_logger(logger_filename=None):
+    logging_file = open(logger_filename, mode='w', encoding='utf-8')
+    fieldnames = ["global_index", "step", "orig_test_data", "label", "prediction", "new_prediction",
+                  "file_id", "src_line", "ast_node_idx"]
 
-def transform_location_data_by_padding(location_data, eval_config):
+    csv_writer = csv.DictWriter(logging_file, delimiter=',', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL, fieldnames=fieldnames)
+    csv_writer.writeheader()
 
-    # Taken from neural_code_completion/models/reader_pointer_extended.py:93
-    # To reformat location data in the same way
+    return csv_writer, logging_file
+
+
+def pad_and_reshape_to_longline(eval_config, test_data_terminal, location_data):
+    """
+    Transform test_data_terminal and location_data by padding and concatenating to
+    one list. Simulates the behaviour in models.reader_pointer_extended.data_producer to create a "shadow" label data
+    (= test_data_terminal) and location_data for accessing this in the main evaluation loop.
+    :param eval_config:
+    :param test_data_terminal: a list of lists
+    :param location_data: a list of lists with 3 consecutive entries ~ 1 entry of test_data_terminal
+    :return: transformed test_data_terminal and transformed location_data
+    """
+
     def padding_and_concat(data, width, pad_id):
+        """
+        Taken from neural_code_completion/models/reader_pointer_extended.py:93
+        :return: long line, padded
+        """
         # the size of data: a list of list. This function will pad the data according to width
         long_line = list()
         for line in data:
@@ -221,13 +292,20 @@ def transform_location_data_by_padding(location_data, eval_config):
             long_line += new_line
         return long_line
 
-    #todo: convert location data to 3 datastructures or list of lists of 3-tuples; or pad with 3*width
     (vocab_sizeN, vocab_sizeT) = eval_config.vocab_size
     eof_N_id = vocab_sizeN - 1
+    eof_T_id = vocab_sizeT - 1
     num_steps = eval_config.num_steps
-    location_transformed = padding_and_concat(data=location_data, width=num_steps, pad_id=eof_N_id)
 
-    return location_transformed
+    test_data_terminal_transformed = padding_and_concat(data=test_data_terminal, width=num_steps, pad_id=eof_T_id)
+    width_location_data = num_steps * LOCATION_ENTRIES_PER_INPUT_ENCODING
+    location_data_transformed = padding_and_concat(data=location_data, width=width_location_data, pad_id=eof_N_id)
+
+    print (f"Length of long lines is:")
+    print (f"   test_data_terminal_transformed = {len(test_data_terminal_transformed)}")
+    print (f"   test_data_terminal_transformed = {len(location_data_transformed)}")
+
+    return test_data_terminal_transformed, location_data_transformed
 
 ##
 if __name__ == '__main__':
