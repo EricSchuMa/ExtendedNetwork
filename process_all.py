@@ -4,11 +4,11 @@
 
 # %% Configuration
 
-from dataclasses import dataclass
+# from dataclasses import dataclass
 import time
 
 
-@dataclass
+# @dataclass
 class ConfigDefaults:
     """
     Default settings, to be subclassed. Paths are from project root.
@@ -28,7 +28,7 @@ class ConfigDefaults:
     py_json_10k: str = 'python10k_dev.json'
 
 
-@dataclass
+# @dataclass
 class ConfigMaxFromTestPreprocess(ConfigDefaults):
     """
     Path configuration taken from neural_code_completion/tests/test_preprocess.py
@@ -42,7 +42,7 @@ class ConfigMaxFromTestPreprocess(ConfigDefaults):
     target_filename: str = 'test_get_terminal_extended.pickle'
 
 
-@dataclass
+# @dataclass
 class ConfigDebug(ConfigDefaults):
     """
     Debugging configuration based on files used in the evaluation.py (received from Max ~6.01.2020) and evaluation_v02.py
@@ -57,7 +57,8 @@ class ConfigDebug(ConfigDefaults):
 
     # Files used for creating models
     # todo: complete, if needed
-    py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
+    # py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
+    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
 
 class ConfigLocationData(ConfigDefaults):
     """
@@ -68,9 +69,9 @@ class ConfigLocationData(ConfigDefaults):
 
     # Files used for creating models
     # todo: complete, if needed
-    py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
+    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
 
-@dataclass
+# @dataclass
 class ConfigProcessingSteps:
     """
     Determines which processing steps should be enabled
