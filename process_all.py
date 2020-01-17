@@ -7,6 +7,19 @@
 # from dataclasses import dataclass
 import time
 
+# The following allows running the project on cmd line, with cmd:
+# nohup /home/artur/venv/bin/python process_all.py
+LINUX = True
+if LINUX:
+    import sys;
+
+    print('Python %s on %s' % (sys.version, sys.platform))
+    sys.path.extend(['/home/artur/IdeaProjects/ExtendedNetwork',
+                     '/home/artur/IdeaProjects/ExtendedNetwork/neural_code_completion',
+                     '/home/artur/IdeaProjects/ExtendedNetwork/neural_code_completion/models',
+                     '/home/artur/IdeaProjects/ExtendedNetwork/Evaluation',
+                     '/home/artur/IdeaProjects/ExtendedNetwork/AST2json'])
+
 
 # @dataclass
 class ConfigDefaults:
