@@ -14,6 +14,7 @@ from models.pointerMixture import PMN, PMNInput
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix
 import csv
+import gc
 
 LOCATION_ENTRIES_PER_INPUT_ENCODING = 3
 
@@ -92,6 +93,8 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
 
             # tqdm shows "progress bar" in the cmd line
             for step in tqdm(range(model_valid.input.epoch_size)):
+                # gc.collect(1)
+                # gc.disable()
                 feed_dict = create_feed_dict(model_valid, session, state, eof_indicator, memory)
 
                 probs_vec, labels_vec = session.run([model_valid.probs, model_valid.labels], feed_dict)
@@ -111,8 +114,8 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
 
 def log_predictions_with_locations(result_logger, count_of_predictions, step, test_terminal_longline, locations_longline,
                                    predictions_vec, labels_vec, new_labels_vec, new_predictions_vec):
-    print (f"## Step: {step}")
-    print (f"   len(prediction) = {len(predictions_vec)}, len(labels) = {len(labels_vec)}, len(new_labels) = {len(new_labels_vec)}")
+    #print (f"\n## Step: {step}")
+    #print (f"   len(prediction) = {len(predictions_vec)}, len(labels) = {len(labels_vec)}, len(new_labels) = {len(new_labels_vec)}")
 
     slice_size = len(predictions_vec)
     data_start = count_of_predictions
@@ -246,6 +249,7 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logge
     result_logger, logging_file = prepare_result_logger(logger_filename)
 
     # Evaluating the Extended Network
+    gc.disable()
     cm_debug = create_confusion_matrix(valid_data_ext_network, py_model_tf, eval_config,
                                        test_terminal_longline=test_data_terminal_transformed,
                                        locations_longline=location_data_transformed, result_logger=result_logger)
