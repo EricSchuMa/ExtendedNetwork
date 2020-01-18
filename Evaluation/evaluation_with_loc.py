@@ -15,6 +15,7 @@ from tqdm import tqdm
 from sklearn.metrics import confusion_matrix
 import csv
 import gc
+from tensorflow.python import debug as tfd
 
 LOCATION_ENTRIES_PER_INPUT_ENCODING = 3
 
@@ -85,30 +86,40 @@ def create_confusion_matrix(valid_data, checkpoint, eval_config, class_indices=N
         with sv.managed_session() as session:
             saver.restore(session, checkpoint)
 
-            state = session.run(model_valid.initial_state)
-            eof_indicator = np.ones(model_valid.input.batch_size, dtype=bool)
-            memory = np.zeros([model_valid.input.batch_size, model_valid.input.num_steps, model_valid.size])
+            # Debug, remove later (3 lines and indentation)
+            from tensorflow.python import debug as tfd
+            with tfd.LocalCLIDebugWrapperSession(session) as tfd_session:
+                tfd_session.add_tensor_filter('has_inf_or_nan_filter', tfd.has_inf_or_nan)
 
-            count_of_predictions = 0
+                # Debug, remove later (1 line)
+                #state = session.run(model_valid.initial_state)
+                state = tfd_session.run(model_valid.initial_state)
+                eof_indicator = np.ones(model_valid.input.batch_size, dtype=bool)
+                memory = np.zeros([model_valid.input.batch_size, model_valid.input.num_steps, model_valid.size])
 
-            # tqdm shows "progress bar" in the cmd line
-            for step in tqdm(range(model_valid.input.epoch_size)):
-                # gc.collect(1)
-                # gc.disable()
-                feed_dict = create_feed_dict(model_valid, session, state, eof_indicator, memory)
+                count_of_predictions = 0
 
-                probs_vec, labels_vec = session.run([model_valid.probs, model_valid.labels], feed_dict)
-                predictions_vec = np.argmax(probs_vec, 1)
-                new_labels_vec, new_predictions_vec = \
-                    convert_labels_and_predictions(predictions_vec, labels_vec, hogID, unkID, is_extended)
+                # tqdm shows "progress bar" in the cmd line
+                for step in tqdm(range(model_valid.input.epoch_size)):
+                    # Debug, remove later (1 line)
+                    #feed_dict = create_feed_dict(model_valid, session, state, eof_indicator, memory)
+                    feed_dict = create_feed_dict(model_valid, tfd_session, state, eof_indicator, memory)
 
-                # add arrays to get true positives and true negatives
-                conf_matrix += confusion_matrix(new_labels_vec, new_predictions_vec)
+                    # Debug, remove later (1 line)
+                    #probs_vec, labels_vec = session.run([model_valid.probs, model_valid.labels], feed_dict)
+                    probs_vec, labels_vec = tfd_session.run([model_valid.probs, model_valid.labels], feed_dict)
 
-                log_predictions_with_locations(result_logger, count_of_predictions, step,
-                                               test_terminal_longline, locations_longline, predictions_vec,
-                                               labels_vec, new_labels_vec, new_predictions_vec)
-                count_of_predictions += len(predictions_vec)
+                    predictions_vec = np.argmax(probs_vec, 1)
+                    new_labels_vec, new_predictions_vec = \
+                        convert_labels_and_predictions(predictions_vec, labels_vec, hogID, unkID, is_extended)
+
+                    # add arrays to get true positives and true negatives
+                    conf_matrix += confusion_matrix(new_labels_vec, new_predictions_vec)
+
+                    log_predictions_with_locations(result_logger, count_of_predictions, step,
+                                                   test_terminal_longline, locations_longline, predictions_vec,
+                                                   labels_vec, new_labels_vec, new_predictions_vec)
+                    count_of_predictions += len(predictions_vec)
     return conf_matrix
 
 

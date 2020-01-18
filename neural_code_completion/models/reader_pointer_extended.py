@@ -76,7 +76,7 @@ def get_input_data_as_dict(nonterminal_data_filename, terminal_data_filename):
     return data
 
 
-def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change_yT=False, name=None, verbose=False):
+def data_producer(raw_data, batch_size, num_steps, vocab_size, attn_size, change_yT=False, name=None, verbose=True):
 
     start_time = time.time()
 

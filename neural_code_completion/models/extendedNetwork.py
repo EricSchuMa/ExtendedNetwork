@@ -171,7 +171,10 @@ class EN(object):
         # concat w and l to construct f
         f_logits = tf.concat([w_logits * d, l_logits * (1 - d)], axis=1)
 
+        # A shape of [-1] flattens into 1-D (https://www.tensorflow.org/api_docs/python/tf/reshape)
         self.labels = tf.reshape(input_.targetsT, [-1])
+        # Debug, remove later
+        tf.Print(self.labels, [self.labels], 'self.labels =', summarize=20, first_n=5)
         weights = tf.ones([batch_size * num_steps], dtype=data_type())
 
         # set mask for counting unk as wrong
