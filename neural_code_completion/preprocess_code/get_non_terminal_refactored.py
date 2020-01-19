@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from six.moves import cPickle as pickle
 
 
-class ProcessorForNonTerminals(object):
+class ProcessorForNonTerminals():
     MAX_NODES_PER_AST = 3e4
 
     def __init__(self):
@@ -188,9 +188,6 @@ class ProcessorForNonTerminals(object):
 
         self.save(target_filename, vocab_size, train_data, test_data,
                   train_parent_offsets, test_parent_offset, empty_set_dense, None)
-        return None
-
-
 
 
 def main(train_filename, test_filename, target_filename) -> None:
