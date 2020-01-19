@@ -148,6 +148,6 @@ if __name__ == '__main__':
     config = ConfigLocationData()
 
     start_time = time.time()
-    print('Starting processing. Using configuration %s' % config)
+    print('Starting processing.')
     run_all(configProcessingSteps=configProcessingSteps, config=config)
     print('Finished processing. It took %.2f sec.' % (time.time() - start_time))

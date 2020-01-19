@@ -296,7 +296,7 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logge
     eval_config.num_layers = 2
 
     test_data_terminal_transformed, location_data_transformed = \
-        pad_and_reshape_to_longline(eval_config, data['test_dataT'], data['test_locations'])
+        rearrange_input_data_numpy(eval_config, data['test_dataT'], data['test_locations'])
 
     logger_filename = 'results_log.csv' if logger_filename is None else logger_filename
     result_logger, logging_file = prepare_result_logger(logger_filename)
@@ -324,13 +324,13 @@ def prepare_result_logger(logger_filename=None):
     return csv_writer, logging_file
 
 
-def pad_and_reshape_to_longline(eval_config, test_data_terminal, location_data):
+def rearrange_input_data(eval_config, test_data, location_data):
     """
-    Transform test_data_terminal and location_data by padding and concatenating to
-    one list. Simulates the behaviour in models.reader_pointer_extended.data_producer to create a "shadow" label data
-    (= test_data_terminal) and location_data for accessing this in the main evaluation loop.
+    Transform test_data_terminal and location_data such in a "long vector" which
+    corresponds to the order of labels and predictions ouput by the main eval loop.
+    Simulates the behaviour in models.reader_pointer_extended.data_producer.
     :param eval_config:
-    :param test_data_terminal: a list of lists
+    :param test_data: a list of lists
     :param location_data: a list of lists with 3 consecutive entries ~ 1 entry of test_data_terminal
     :return: transformed test_data_terminal and transformed location_data
     """
@@ -349,20 +349,90 @@ def pad_and_reshape_to_longline(eval_config, test_data_terminal, location_data):
             long_line += new_line
         return long_line
 
+    # A. Padding and creating a long vector
     (vocab_sizeN, vocab_sizeT) = eval_config.vocab_size
     eof_N_id = vocab_sizeN - 1
     eof_T_id = vocab_sizeT - 1
     num_steps = eval_config.num_steps
 
-    test_data_terminal_transformed = padding_and_concat(data=test_data_terminal, width=num_steps, pad_id=eof_T_id)
+    test_data_longvec = padding_and_concat(data=test_data, width=num_steps, pad_id=eof_T_id)
     width_location_data = num_steps * LOCATION_ENTRIES_PER_INPUT_ENCODING
-    location_data_transformed = padding_and_concat(data=location_data, width=width_location_data, pad_id=eof_N_id)
+    location_data_longvec = padding_and_concat(data=location_data, width=width_location_data, pad_id=eof_N_id)
 
     print (f"Length of long lines is:")
-    print (f"   test_data_terminal_transformed = {len(test_data_terminal_transformed)}")
-    print (f"   test_data_terminal_transformed = {len(location_data_transformed)}")
+    print (f"   test_data_terminal_transformed = {len(test_data_longvec)}")
+    print (f"   test_data_terminal_transformed = {len(location_data_longvec)}")
 
-    return test_data_terminal_transformed, location_data_transformed
+    # B. Rearranging blocks of num_steps (in test_data, 3*num_steps in location_data) according to the schema:
+    # x = data[0:batch_size, i * num_steps:(i + 1) * num_steps]
+    # y = data[0:batch_size, i * num_steps + 1:(i + 1) * num_steps + 1]
+    # with i = 0 ... epoch_size
+    # Observed values: data_len = 6502400, batch_len = 50800, batch_size = 128, epoch_size = 1015, num_steps = 50
+
+
+
+    return test_data_longvec, location_data_longvec
+
+def rearrange_input_data_numpy(eval_config, test_data, location_data):
+    """
+    Transform test_data_terminal and location_data such in a "long vector" which
+    corresponds to the order of labels and predictions ouput by the main eval loop.
+    Simulates the behaviour in models.reader_pointer_extended.data_producer.
+    :param eval_config:
+    :param test_data: a list of lists
+    :param location_data: a list of lists with 3 consecutive entries ~ 1 entry of test_data_terminal
+    :return: transformed test_data_terminal and transformed location_data
+    """
+
+
+    def padding_and_concat(data, width, pad_value):
+        """
+        Taken from neural_code_completion/models/reader_pointer_extended.py:93
+        Yet ported to numpy
+        :return: long line, padded as numpy
+        """
+
+        def pad_inner_lists(list_of_lists, width, pad_value):
+            """
+            Given a list of lists, pad each inner list with pad_value so that its len is multiple of width.
+            :return: List of padded lists
+            """
+            new_data = list()
+            for line in list_of_lists:
+                pad_len = width - (len(line) % width)
+                new_line = line + [pad_value] * pad_len
+                assert len(new_line) % width == 0
+                new_data.append(new_line)
+            return new_data
+
+        padded_data = pad_inner_lists(data, width, pad_value)
+        long_line = np.concatenate([np.array(inner_elem, dtype=np.int32) for inner_elem in padded_data])
+        return long_line
+
+    # A. Padding and creating a long vector
+    (vocab_sizeN, vocab_sizeT) = eval_config.vocab_size
+    eof_N_id = vocab_sizeN - 1
+    eof_T_id = vocab_sizeT - 1
+    num_steps = eval_config.num_steps
+
+    test_data_longvec = padding_and_concat(data=test_data, width=num_steps, pad_value=eof_T_id)
+    width_location_data = num_steps * LOCATION_ENTRIES_PER_INPUT_ENCODING
+    location_data_longvec = padding_and_concat(data=location_data, width=width_location_data, pad_value=-999)
+
+    print (f"Length of long lines is:")
+    print (f"   test_data_terminal_transformed = {len(test_data_longvec)}")
+    print (f"   test_data_terminal_transformed = {len(location_data_longvec)}")
+
+    # B. Rearranging blocks of num_steps (in test_data, 3*num_steps in location_data) according to the schema:
+    # x = data[0:batch_size, i * num_steps:(i + 1) * num_steps]
+    # y = data[0:batch_size, i * num_steps + 1:(i + 1) * num_steps + 1]
+    # with i = 0 ... epoch_size
+    # Observed values: data_len = 6502400, batch_len = 50800, batch_size = 128, epoch_size = 1015, num_steps = 50
+
+
+
+    return test_data_longvec, location_data_longvec
+
 
 ##
 if __name__ == '__main__':
