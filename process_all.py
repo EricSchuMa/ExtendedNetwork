@@ -40,6 +40,10 @@ class ConfigDefaults:
     py_json_90k: str = 'python90k_train.json'
     py_json_10k: str = 'python10k_dev.json'
 
+    # Files used for creating models
+    # py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
+    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
+
 
 # @dataclass
 class ConfigMaxFromTestPreprocess(ConfigDefaults):
@@ -68,10 +72,6 @@ class ConfigDebug(ConfigDefaults):
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
-    # Files used for creating models
-    # todo: complete, if needed
-    # py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
-    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
 
 class ConfigLocationData(ConfigDefaults):
     """
@@ -81,7 +81,6 @@ class ConfigLocationData(ConfigDefaults):
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
     # Files used for creating models
-    # todo: complete, if needed
     py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
 
 # @dataclass
