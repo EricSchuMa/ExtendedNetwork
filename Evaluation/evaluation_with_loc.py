@@ -409,19 +409,47 @@ def rearrange_input_data_numpy(eval_config, test_data, location_data):
         long_line = np.concatenate([np.array(inner_elem, dtype=np.int32) for inner_elem in padded_data])
         return long_line
 
+    def rearrange_slices(long_vec, slice_size,  slices_per_batch, y_offset):
+        """
+        Given a long vector long_vec:
+        * starting at y_offset, split it into slices s of size slice_size:
+        *   We get s[0], s[1], ..., s[data_len/slice_size]
+        * Create a new data structure with slices in this order:
+        *  s[0], s[(1*slices_per_batch) mod num_slices], s[(2*slices_per_batch) ) mod num_slices], ..
+        * i.e. in general, slice with original index x + y*slices_per_batch
+        * is moved to slice position x*slices_per_batch + y
+        * I.e. a "slice matrix" with slices_per_batch many rows is transposed.
+        :return:
+        """
+
+        # 1. Shift elements and fill the first offset with "nonsense"
+        long_vec = np.roll(long_vec, y_offset)
+        long_vec[0:y_offset] = np.full(y_offset, -321, dtype= np.int32)
+
+        # 2. Reshape the input so that 3rd dim becomes the index in the slice,
+        #       and 1st dim index in the batch (y-axis of the "slice array")
+        slice_array = long_vec.reshape(slices_per_batch, -1, slice_size)
+        print (f"Reshaped array of len = {long_vec.size} to shape {slice_array.shape}")
+        print (f"Slice [0,1] (2nd orig slice) is {slice_array[0,1,:]}")
+        print (f" 2nd orig slice is {long_vec[slice_size:2*slice_size-1]}")
+
+        # 3. Transpose dims 1 and 2
+        slice_array = np.transpose(slice_array, (2,1,3))
+
+        # 4. Flatten and return
+        transformed_long_vec = slice_array.ravel()
+
+        return transformed_long_vec
+
     # A. Padding and creating a long vector
     (vocab_sizeN, vocab_sizeT) = eval_config.vocab_size
-    eof_N_id = vocab_sizeN - 1
     eof_T_id = vocab_sizeT - 1
     num_steps = eval_config.num_steps
+    eof_loc_id = -999
 
     test_data_longvec = padding_and_concat(data=test_data, width=num_steps, pad_value=eof_T_id)
     width_location_data = num_steps * LOCATION_ENTRIES_PER_INPUT_ENCODING
-    location_data_longvec = padding_and_concat(data=location_data, width=width_location_data, pad_value=-999)
-
-    print (f"Length of long lines is:")
-    print (f"   test_data_terminal_transformed = {len(test_data_longvec)}")
-    print (f"   test_data_terminal_transformed = {len(location_data_longvec)}")
+    location_data_longvec = padding_and_concat(data=location_data, width=width_location_data, pad_value=eof_loc_id)
 
     # B. Rearranging blocks of num_steps (in test_data, 3*num_steps in location_data) according to the schema:
     # x = data[0:batch_size, i * num_steps:(i + 1) * num_steps]
@@ -429,9 +457,14 @@ def rearrange_input_data_numpy(eval_config, test_data, location_data):
     # with i = 0 ... epoch_size
     # Observed values: data_len = 6502400, batch_len = 50800, batch_size = 128, epoch_size = 1015, num_steps = 50
 
+    test_data_transformed = rearrange_slices(test_data_longvec, slice_size=num_steps,
+                                             slices_per_batch= eval_config.batch_size, y_offset=1)
 
+    location_data_transformed = rearrange_slices(location_data_longvec, slice_size=width_location_data,
+                                             slices_per_batch= eval_config.batch_size,
+                                                 y_offset=1*LOCATION_ENTRIES_PER_INPUT_ENCODING)
 
-    return test_data_longvec, location_data_longvec
+    return test_data_transformed, location_data_transformed
 
 
 ##
