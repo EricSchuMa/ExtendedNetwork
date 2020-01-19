@@ -167,38 +167,6 @@ def create_confusion_matrix_with_tfdbg(valid_data, checkpoint, eval_config, clas
     return conf_matrix
 
 
-def log_predictions_with_locations(result_logger, count_of_predictions, step, test_data_longline, locations_longline,
-                                   predictions_vec, labels_vec, new_labels_vec, new_predictions_vec):
-    size_epoch_out = len(predictions_vec)
-    data_start = count_of_predictions
-    line_dict = dict()
-
-    # print ("################################################################################################")
-    # print ("global_index, step, orig_test_data, label, prediction, new_prediction, file_id, src_line, ast_node_idx")
-    for epoch_data_row_idx in range(size_epoch_out):
-        # Add 1 token ahead since the "ground_truth" and preditions look at the next "future" token
-        global_row_idx = data_start + epoch_data_row_idx + 1
-        global_location_idx = global_row_idx * LOCATION_ENTRIES_PER_INPUT_ENCODING
-
-        line_dict["global_index"] = global_row_idx
-        line_dict["step"] = step
-
-        line_dict["orig_test_data"] = test_data_longline[global_row_idx]
-        line_dict["label"] = labels_vec[epoch_data_row_idx]
-        line_dict["prediction"] = predictions_vec[epoch_data_row_idx]
-        line_dict["new_prediction"] = new_predictions_vec[epoch_data_row_idx]
-
-        line_dict["file_id"] = locations_longline[global_location_idx]
-        line_dict["src_line"] = locations_longline[global_location_idx + 1]
-        line_dict["ast_node_idx"] = locations_longline[global_location_idx + 2]
-        result_logger.writerow(line_dict)
-
-        # print ("%d, %d, %d, %d, %d, %d, %d, %d, %d" %
-        #        (global_row_idx, step, test_terminal_longline[global_row_idx],
-        #         labels_vec[local_row_idx], predictions_vec[local_row_idx], new_predictions_vec[local_row_idx],
-        #         locations_longline[global_location_idx], locations_longline[global_location_idx+1],
-        #         locations_longline[global_location_idx+2]))
-
 
 def plot_confusion_matrix(conf, classes, normalize=False, title=None, cmap=plt.cm.Blues):
     matplotlib.rcParams.update({'font.size': 13})
@@ -312,66 +280,54 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logge
     plt.show()
 
 
+#### Result logging ####
+
+RESULT_LOG_FIELDNAMES = ["prediction_idx", "epoch_num", "truth", "prediction", "new_prediction",
+                         "file_id", "src_line", "ast_node_idx"]
+
+
 def prepare_result_logger(logger_filename=None):
     logging_file = open(logger_filename, mode='w', encoding='utf-8', newline='')
-    fieldnames = ["global_index", "step", "orig_test_data", "label", "prediction", "new_prediction",
-                  "file_id", "src_line", "ast_node_idx"]
-
     csv_writer = csv.DictWriter(logging_file, delimiter=',', quotechar='"',
-                                quoting=csv.QUOTE_MINIMAL, fieldnames=fieldnames)
+                                quoting=csv.QUOTE_MINIMAL, fieldnames=RESULT_LOG_FIELDNAMES)
     csv_writer.writeheader()
-
     return csv_writer, logging_file
 
 
-def rearrange_input_data(eval_config, test_data, location_data):
-    """
-    Transform test_data_terminal and location_data such in a "long vector" which
-    corresponds to the order of labels and predictions ouput by the main eval loop.
-    Simulates the behaviour in models.reader_pointer_extended.data_producer.
-    :param eval_config:
-    :param test_data: a list of lists
-    :param location_data: a list of lists with 3 consecutive entries ~ 1 entry of test_data_terminal
-    :return: transformed test_data_terminal and transformed location_data
-    """
+def log_predictions_with_locations(result_logger, count_of_predictions, step, test_data_longline, locations_longline,
+                                   predictions_vec, labels_vec, new_labels_vec, new_predictions_vec):
+    size_epoch_out = len(predictions_vec)
+    data_start = count_of_predictions
+    line_dict = dict()
 
-    def padding_and_concat(data, width, pad_id):
-        """
-        Taken from neural_code_completion/models/reader_pointer_extended.py:93
-        :return: long line, padded
-        """
-        # the size of data: a list of list. This function will pad the data according to width
-        long_line = list()
-        for line in data:
-            pad_len = width - (len(line) % width)
-            new_line = line + [pad_id] * pad_len
-            assert len(new_line) % width == 0
-            long_line += new_line
-        return long_line
+    # print ("################################################################################################")
+    # print ("global_index, step, orig_test_data, label, prediction, new_prediction, file_id, src_line, ast_node_idx")
+    for epoch_data_row_idx in range(size_epoch_out):
+        global_row_idx = data_start + epoch_data_row_idx
+        global_location_idx = global_row_idx * LOCATION_ENTRIES_PER_INPUT_ENCODING
 
-    # A. Padding and creating a long vector
-    (vocab_sizeN, vocab_sizeT) = eval_config.vocab_size
-    eof_N_id = vocab_sizeN - 1
-    eof_T_id = vocab_sizeT - 1
-    num_steps = eval_config.num_steps
+        # check that our preprocessing of ground truth is ok
+        assert test_data_longline[global_row_idx] == labels_vec[epoch_data_row_idx]
+        # line_dict["orig_test_data"] = test_data_longline[global_row_idx]
 
-    test_data_longvec = padding_and_concat(data=test_data, width=num_steps, pad_id=eof_T_id)
-    width_location_data = num_steps * LOCATION_ENTRIES_PER_INPUT_ENCODING
-    location_data_longvec = padding_and_concat(data=location_data, width=width_location_data, pad_id=eof_N_id)
+        line_dict["prediction_idx"] = global_row_idx
+        line_dict["epoch_num"] = step
+        line_dict["truth"] = labels_vec[epoch_data_row_idx]
+        line_dict["prediction"] = predictions_vec[epoch_data_row_idx]
+        line_dict["new_prediction"] = new_predictions_vec[epoch_data_row_idx]
 
-    print (f"Length of long lines is:")
-    print (f"   test_data_terminal_transformed = {len(test_data_longvec)}")
-    print (f"   test_data_terminal_transformed = {len(location_data_longvec)}")
+        line_dict["file_id"] = locations_longline[global_location_idx]
+        line_dict["src_line"] = locations_longline[global_location_idx + 1]
+        line_dict["ast_node_idx"] = locations_longline[global_location_idx + 2]
+        result_logger.writerow(line_dict)
 
-    # B. Rearranging blocks of num_steps (in test_data, 3*num_steps in location_data) according to the schema:
-    # x = data[0:batch_size, i * num_steps:(i + 1) * num_steps]
-    # y = data[0:batch_size, i * num_steps + 1:(i + 1) * num_steps + 1]
-    # with i = 0 ... epoch_size
-    # Observed values: data_len = 6502400, batch_len = 50800, batch_size = 128, epoch_size = 1015, num_steps = 50
+        # print ("%d, %d, %d, %d, %d, %d, %d, %d, %d" %
+        #        (global_row_idx, step, test_terminal_longline[global_row_idx],
+        #         labels_vec[local_row_idx], predictions_vec[local_row_idx], new_predictions_vec[local_row_idx],
+        #         locations_longline[global_location_idx], locations_longline[global_location_idx+1],
+        #         locations_longline[global_location_idx+2]))
 
 
-
-    return test_data_longvec, location_data_longvec
 
 def rearrange_input_data_numpy(eval_config, test_data, location_data):
     """
@@ -383,7 +339,6 @@ def rearrange_input_data_numpy(eval_config, test_data, location_data):
     :param location_data: a list of lists with 3 consecutive entries ~ 1 entry of test_data_terminal
     :return: transformed test_data_terminal and transformed location_data
     """
-
 
     def padding_and_concat(data, width, pad_value):
         """
@@ -426,16 +381,17 @@ def rearrange_input_data_numpy(eval_config, test_data, location_data):
         num_epochs = long_vec.size // (slices_per_batch * slice_size)
         long_vec_truncated = long_vec[0: num_epochs * slices_per_batch * slice_size]
 
-        # 1. Shift elements and fill the first offset with "nonsense"
-        long_vec_truncated = np.roll(long_vec_truncated, y_offset)
-        long_vec_truncated[0:y_offset] = np.full(y_offset, -321, dtype=np.int32)
+        # 1. Shift elements by 1 position, make the next "future token" a current one
+        # (since predictions target the next "future" token)
+        long_vec_truncated = np.roll(long_vec_truncated, -y_offset)
+        # long_vec_truncated[-y_offset:] = np.full(y_offset, -321, dtype=np.int32)
 
         # 2. Reshape the input into slice_array[batch_idx, epoch_idx, within_slice_idx]
         #       so that 3rd dim becomes the index into the slice
         slice_array = long_vec_truncated.reshape((slices_per_batch, num_epochs, slice_size))
-        print(f"Reshaped array of len = {long_vec_truncated.size} to shape {slice_array.shape}")
-        print(f"Slice [0,1] (2nd orig slice) is {slice_array[0, 1, :]}")
-        print(f" 2nd orig slice is {long_vec_truncated[slice_size:2 * slice_size - 1]}")
+        # print(f"Reshaped array of len = {long_vec_truncated.size} to shape {slice_array.shape}")
+        # print(f"Slice [0,1] (2nd orig slice) is {slice_array[0, 1, :]}")
+        # print(f" 2nd orig slice is {long_vec_truncated[slice_size:2 * slice_size - 1]}")
 
         # 3. Transpose dims 1 and 2
         slice_array = np.transpose(slice_array, (1, 0, 2))
