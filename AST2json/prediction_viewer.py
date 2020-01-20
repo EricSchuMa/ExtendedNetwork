@@ -2,32 +2,73 @@ import json as json
 import re
 from parse_python_v2 import parse_file
 import pandas as pd
+from six.moves import cPickle as pickle
 
 train_data = "D:\PythonProjects\AST2json\python100k_train.txt"
 test_data = "D:\PythonProjects\AST2json\python50k_eval.txt"
 csv_file = "D:\\PythonProjects\\AST2json\\2020-01-18-1515-results_log-sorted-by-file_id.csv"
 log_file = "./result/summary.txt"
+pickle_file = "D:\PythonProjects\AST2json\PY_terminal_1k_extended_dev.pickle"
+
+
+def restore_terminal_dict(filename):
+    """loads the terminal_dict which includes the #vocab_size most appearing terminals"""
+    with open(filename, 'rb') as f:
+        save = pickle.load(f)
+        terminal_dict = save['terminal_dict']
+        # terminal_num = save['terminal_num']
+        # vocab_size = save['vocab_size']
+        return terminal_dict  # vocab_size is 50k, and also the unk_id
+
+
+def get_prediction_value(terminal_dict, pred):
+    for terminal, ranking in terminal_dict.items():
+        if ranking == pred:
+            return terminal
+
+    # The prediction does not belong to terminal_dict
+    return pred
 
 
 def create_lists(data, file_ids, num_file):
     positions = []
     predictions = []
 
+    terminal_dict = restore_terminal_dict(pickle_file)
+
     for i in range(num_file):
         file_id = file_ids[i]
         is_file_id = data["file_id"] == file_id
         file_data = data[is_file_id]
-        temp_data = file_data[["new_prediction", "file_id", "src_line", "ast_node_idx"]]
+        temp_data = file_data[["truth", "prediction", "new_prediction", "file_id", "src_line", "ast_node_idx"]]
         for idx, row in temp_data.iterrows():
             positions.append((row["file_id"], row["src_line"], row["ast_node_idx"]))
             if row["new_prediction"] == 0:
-                prediction = "HOG"
+                h_truth = get_prediction_value(terminal_dict, row["truth"])
+                if h_truth == len(terminal_dict.keys()):
+                    prediction = "HU"
+                else:
+                    prediction = "H-{}".format(h_truth)
             elif row["new_prediction"] == 1:
                 prediction = "UNK"
             elif row["new_prediction"] == 2:
-                prediction = "PRED=LABEL"
+                t_truth = get_prediction_value(terminal_dict, row["truth"])
+                if isinstance(t_truth, basestring):
+                    prediction = "S"
+                elif t_truth == len(terminal_dict.keys()):
+                    prediction = "AU"
+                else:
+                    prediction = "A"
             else:
-                prediction = "OTHER"
+                o_truth = get_prediction_value(terminal_dict, row["truth"])
+                o_predict = get_prediction_value(terminal_dict, row["prediction"])
+                # prediction = "OTHER-" + get_prediction_value(terminal_dict, row["prediction"])
+                if isinstance(o_truth, basestring):
+                    prediction = "F-{}-{}".format(o_predict, o_truth)
+                elif o_truth == len(terminal_dict.keys()):
+                    prediction = "U-{}-{}".format(o_predict, o_truth)
+                else:
+                    prediction = "G-{}-{}".format(o_predict, o_truth)
 
             predictions.append(prediction)
 
