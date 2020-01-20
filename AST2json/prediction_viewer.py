@@ -27,7 +27,7 @@ def get_prediction_value(terminal_dict, pred):
             return terminal
 
     # The prediction does not belong to terminal_dict
-    return str(pred)
+    return pred
 
 
 def create_lists(data, file_ids, num_file):
@@ -44,16 +44,31 @@ def create_lists(data, file_ids, num_file):
         for idx, row in temp_data.iterrows():
             positions.append((row["file_id"], row["src_line"], row["ast_node_idx"]))
             if row["new_prediction"] == 0:
-                prediction = "HOG"
+                h_truth = get_prediction_value(terminal_dict, row["truth"])
+                if h_truth == len(terminal_dict.keys()):
+                    prediction = "HU"
+                else:
+                    prediction = "H-{}".format(h_truth)
             elif row["new_prediction"] == 1:
                 prediction = "UNK"
             elif row["new_prediction"] == 2:
-                prediction = "PRED=LABEL"
+                t_truth = get_prediction_value(terminal_dict, row["truth"])
+                if isinstance(t_truth, basestring):
+                    prediction = "S"
+                elif t_truth == len(terminal_dict.keys()):
+                    prediction = "AU"
+                else:
+                    prediction = "A"
             else:
-                truth = get_prediction_value(terminal_dict, row["truth"])
-                predict = get_prediction_value(terminal_dict, row["prediction"])
+                o_truth = get_prediction_value(terminal_dict, row["truth"])
+                o_predict = get_prediction_value(terminal_dict, row["prediction"])
                 # prediction = "OTHER-" + get_prediction_value(terminal_dict, row["prediction"])
-                prediction = "OTHER-" + predict + "-" + truth
+                if isinstance(o_truth, basestring):
+                    prediction = "F-{}-{}".format(o_predict, o_truth)
+                elif o_truth == len(terminal_dict.keys()):
+                    prediction = "U-{}-{}".format(o_predict, o_truth)
+                else:
+                    prediction = "G-{}-{}".format(o_predict, o_truth)
 
             predictions.append(prediction)
 
