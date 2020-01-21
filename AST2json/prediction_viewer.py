@@ -46,29 +46,30 @@ def create_lists(data, file_ids, num_file):
             if row["new_prediction"] == 0:
                 h_truth = get_prediction_value(terminal_dict, row["truth"])
                 if h_truth == len(terminal_dict.keys()):
-                    prediction = "HU"
+                    prediction = "???"
                 else:
-                    prediction = "H-{}".format(h_truth)
+                    prediction = "--+"
             elif row["new_prediction"] == 1:
-                prediction = "UNK"
+                prediction = "UNK"  # there is no UNK in the prediction values
             elif row["new_prediction"] == 2:
                 t_truth = get_prediction_value(terminal_dict, row["truth"])
                 if isinstance(t_truth, basestring):
-                    prediction = "S"
+                    prediction = "+.."
                 elif t_truth == len(terminal_dict.keys()):
                     prediction = "AU"
                 else:
-                    prediction = "A"
+                    prediction = "-+."
             else:
                 o_truth = get_prediction_value(terminal_dict, row["truth"])
                 o_predict = get_prediction_value(terminal_dict, row["prediction"])
                 # prediction = "OTHER-" + get_prediction_value(terminal_dict, row["prediction"])
                 if isinstance(o_truth, basestring):
-                    prediction = "F-{}-{}".format(o_predict, o_truth)
+                    prediction = "*--"
                 elif o_truth == len(terminal_dict.keys()):
-                    prediction = "U-{}-{}".format(o_predict, o_truth)
+                    # prediction = "U-{}-{}".format(o_predict, o_truth)
+                    prediction = "---"
                 else:
-                    prediction = "G-{}-{}".format(o_predict, o_truth)
+                    prediction = "-*-"
 
             predictions.append(prediction)
 
