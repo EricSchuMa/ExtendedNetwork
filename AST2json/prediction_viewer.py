@@ -6,7 +6,8 @@ from six.moves import cPickle as pickle
 
 train_data = "D:\PythonProjects\AST2json\python100k_train.txt"
 test_data = "D:\PythonProjects\AST2json\python50k_eval.txt"
-csv_file = "D:\\PythonProjects\\AST2json\\2020-01-18-1515-results_log-sorted-by-file_id.csv"
+# csv_file = "D:\\PythonProjects\\AST2json\\2020-01-18-1515-results_log-sorted-by-file_id.csv"
+csv_file = "D:\\PythonProjects\\AST2json\\2020-01-19-at-1857.csv"
 log_file = "./result/summary.txt"
 pickle_file = "D:\PythonProjects\AST2json\PY_terminal_1k_extended_dev.pickle"
 
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     filtered_data = data[is_not_padded]
     file_ids = filtered_data["file_id"].unique().tolist()
 
-    positions, predictions = create_lists(filtered_data, file_ids, 10)
+    positions, predictions = create_lists(filtered_data, file_ids, 20)
 
     print(positions)
     print(predictions)
