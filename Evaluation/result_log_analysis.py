@@ -8,6 +8,20 @@ import pandas as pd
 data_raw = data = pd.read_csv(result_log_dir + result_file_name)
 # data_raw.describe()
 
+def decode_results(truth_val, prediction_val, new_prediction_val):
+    """
+    Decode and convert result columns into more clear format and cases.
+    :param truth_val:
+    :param prediction_val:
+    :param new_prediction_val:
+    :return:
+    """
+
+
+
+
+
+
 #%%
 ## data = on raw_data | drop columns 'epoch_num', 'ast_node_idx'
 data = data_raw.drop(columns=['epoch_num', 'ast_node_idx'])
