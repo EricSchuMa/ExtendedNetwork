@@ -1,23 +1,23 @@
 # Overview
-Explanations of the data formats and encodings used in the project.
+Explanations of the result formats and encodings used in the project.
 
-Artur Andrzejak, Jan 2020
+Artur Andrzejak, Tuyen Le (Jan 2020)
 
 
 #For prediction_viewer
-#####Meaning of inserts in source files enhanced by prediction results.
+#####Meaning of inserts in source files representing prediction results for the next token.
 
-New encoding | Old encoding | Meaning
+New encoding (**dph**) | Old encoding | Meaning
 ---| --- | ---
---+ | H-truth value | the prediction is HOG
-+.. | S | the prediction is true and the truth value is in [0..999]
-not occur | AU | the prediction is true and the truth value is unk_id
--+. | A | the prediction is true and the truth value >= 1003
-*-- | F-prediction value-truth value | the prediction is false and the truth value is in [0..999]
--*- | G-prediction value-truth value | the prediction is false and the truth value >= 1003
---- | U-prediction value-truth value | the prediction is false and the truth value is unk_id
-??? | HU | the prediction is HOG and the truth value is unk_id
+`+..` | S | the prediction is true and the truth value is in [1..999]
+`-+.` | A | the prediction is true and the truth value >= 1003
+`--+` | H-truth value | the prediction is HOG
+`*--` | F-prediction value-truth value | the prediction is false and the truth value is in [1..999]
+`-*-` | G-prediction value-truth value | the prediction is false and the truth value >= 1003
+`---` | U-prediction value-truth value | the prediction is false and the truth value is unk_id
+`???` | HU | the prediction is HOG and the truth value is unk_id
 not occur | UNK | unkown id. However, there is no UNK in the prediction values
+not occur | AU | the prediction is true and the truth value is unk_id
 
 <!---
 + "H-truth value": the prediction is HOG.
@@ -64,7 +64,7 @@ I have noticed that hog_id = unk_id + 1 (i.e. hog_id is 1001 and unk_id is 1000 
 ##### Explanations of meaning of encodings for columns truth and prediction in results_log 
 
 # Summary:
-If <value> is ...
+If *value* is ...
 
 * 0: "EmptY", means ast node has no terminal value.
 * 1..999: ID in the terminal dictionary.
@@ -72,11 +72,10 @@ If <value> is ...
 		not in attention window), AND phog predicted wrongly.
 * 1001: hog; this means that hog predicted correctly BUT pointer net failed completely.
 * 1002: eof; which (probably) is the constant for the padding in preprocessing
-* 1003...1053: token is in attention queue, at position <current_astnode_idx>-(<value>-1002)
- * i.e. <value>-1002 = location_index = number of tokens to go back to get replica of current token.
+* 1003...1053: token is can be found in the attention windown, with
+ *  location_index = number of tokens to go back to get replica of current token = (*value*-(1003)+1). 
  * > Example: dic_value = 'TemplateSpec', i = 7 (node_idx), att_que {7} = [.., 'TemplateSpec', 'Simple', 'EmptY']. 
-   > We have location_index = 3 and <value> (in code location_id) = 1005.
-   >  
+   > We have location_index = 3 and <value> = 1005 (in code *value* = location_id).  
 
 ### Explanation how we get this:
 
