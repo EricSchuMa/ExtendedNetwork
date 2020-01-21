@@ -15,10 +15,44 @@ from neural_code_completion.preprocess_code.get_terminal_original import restore
 
 terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
 train_filename = '../../data/python90k_train.json'
-trainHOG_filename = '../../data/phog_train.json'
+trainHOG_filename = '../../data/phog-json/phog_train.json'
 test_filename = '../../data/python10k_dev.json'
-testHOG_filename = '../../data/phog_dev.json'
+testHOG_filename = '../../data/phog-json/phog_dev.json'
 target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
+
+from recordclass import RecordClass, recordclass
+
+class PredictionSample(RecordClass):
+    has_terminal: bool
+    in_dict: bool
+    in_attn_window: bool
+    phog_ok: bool
+    file_id: int
+    line_id: int
+    node_id: int
+
+
+class PredictionsContainer():
+    # sample_class = recordclass ("PredictionSample", "has_terminal in_dict in_attn_window phog_ok file_id line_id node_id")
+
+    def __init__(self):
+        self._predictions = list()
+
+    def append(self, has_terminal, in_dict, in_attn_window, phog_ok, file_id, line_id, node_id):
+        sample = PredictionSample(has_terminal, in_dict, in_attn_window, phog_ok, file_id, line_id, node_id)
+        # sample.has_terminal = has_terminal
+        # sample.in_dict = in_dict
+        # sample.in_attn_window = in_attn_window
+        # sample.phog_ok = phog_ok
+        # sample.file_id = file_id
+        # sample.line_id = line_id
+        # sample.node_id = node_id
+
+        self._predictions.append(sample)
+
+    def get_all(self):
+        """todo: make this class iterable instead"""
+        return self._predictions
 
 
 def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=False):
@@ -46,6 +80,10 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                 length_total = 0
                 line_index = 0
                 hog = unk_id + 1
+
+                # A list of predictions over all files (ASTs)
+                all_prediction_data = list()
+
                 for line, line_hog in zip(lines, lines_hog):
                     line_index += 1
                     if line_index % 1000 == 0:
@@ -59,15 +97,31 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                         attn_fail_cnt = 0
                         hog_success_cnt = 0
                         hog_fail_cnt = 0
+
+                        # A list of results
+                        predictions_for_ast = PredictionsContainer()
+
                         for i, (dic, dic_hog) in enumerate(zip(data, data_hog)):  # JS data[:-1] or PY data
-                            if 'value' in dic.keys():
+                            node_has_terminal = 'value' in dic
+
+                            is_in_terminal_dict = 0
+                            is_in_attention_window = 0
+                            phog_predicted_ok = 0
+
+                            location = dic['location']
+
+                            if node_has_terminal:
                                 dic_value = dic['value']
-                                if dic_value in terminal_dict:
+                                is_in_terminal_dict = dic_value in terminal_dict
+                                is_in_attention_window = dic_value in attn_que
+                                phog_predicted_ok = (dic_value == dic_hog["value"])
+
+                                if is_in_terminal_dict:
                                     # Token is in the sequence model dictionary
                                     terminal_line.append(terminal_dict[dic_value])
                                     attn_que.append('NormaL')
                                 else:
-                                    if dic_value in attn_que:
+                                    if is_in_attention_window:
                                         # token is in attention window, but _not_ in seq model dict,
                                         location_index = [len(attn_que)-ind for ind, x
                                                           in enumerate(attn_que) if x == dic_value][-1]
@@ -76,9 +130,9 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                         attn_success_cnt += 1
 
                                     else:
-                                        # pointer network cannot predict, try phog now
                                         attn_fail_cnt += 1
-                                        if dic_value == dic_hog["value"]:
+                                        # pointer network cannot predict, try phog now
+                                        if phog_predicted_ok:
                                             # obviously phog has predicted correctly (ask Max)
                                             hog_success_cnt += 1
                                             terminal_line.append(hog)
@@ -92,6 +146,8 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                             else:
                                 terminal_line.append(terminal_dict['EmptY'])
                                 attn_que.append('EmptY')
+                            predictions_for_ast.append(node_has_terminal, is_in_terminal_dict, is_in_attention_window,
+                                                       phog_predicted_ok, location[0], location[1], location[2])
                         terminal_corpus.append(terminal_line)
                         attn_success_total += attn_success_cnt
                         attn_fail_total += attn_fail_cnt
@@ -99,6 +155,8 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                         hog_success_total += hog_success_cnt
                         hog_fail_total += hog_fail_cnt
                         length_total += len(data)
+                        all_prediction_data.append(predictions_for_ast)
+
                         if verbose and line_index % 1000 == 0:
                             print('\nUntil line %d: attn_success_total: %d, attn_fail_total: %d, success/attn_total: %.4f,'
                                   ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
@@ -121,7 +179,7 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                 float(hog_success_total) / hog_fail_total, length_total,
                                 float(hog_success_total) / length_total,
                                 float(attn_total) / length_total))
-            return terminal_corpus
+            return terminal_corpus, all_prediction_data
 
 
 def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData):
@@ -139,17 +197,17 @@ def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData
 if __name__ == '__main__':
     start_time = time.time()
     attn_size = 50
-    SKIP_TRAIN_DATA = False
+    SKIP_TRAIN_DATA = True
     terminal_dict, terminal_num, vocab_size = restore_terminal_dict(terminal_dict_filename)
     if SKIP_TRAIN_DATA:
         target_filename_debug = '../pickle_data/PY_terminal_1k_extended_debug.pickle'
-        testData = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+        testData, all_prediction_data = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
                            verbose=False, is_train=False)
         save(target_filename_debug, terminal_dict, terminal_num, vocab_size, attn_size, testData, testData)
     else:
-        trainData = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+        trainData, train_prediction_data = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
                             verbose=False, is_train=True)
-        testData = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+        testData, test_prediction_data = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
                            verbose=False, is_train=False)
         save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
 
