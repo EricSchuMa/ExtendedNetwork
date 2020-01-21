@@ -7,6 +7,19 @@ Artur Andrzejak, Jan 2020
 #For prediction_viewer
 #####Meaning of inserts in source files enhanced by prediction results.
 
+New encoding | Old encoding | Meaning
+---| --- | ---
+--+ | H-truth value | the prediction is HOG
++.. | S | the prediction is true and the truth value is in [0..999]
+not occur | AU | the prediction is true and the truth value is unk_id
+-+. | A | the prediction is true and the truth value >= 1003
+*-- | F-prediction value-truth value | the prediction is false and the truth value is in [0..999]
+-*- | G-prediction value-truth value | the prediction is false and the truth value >= 1003
+--- | U-prediction value-truth value | the prediction is false and the truth value is unk_id
+??? | HU | the prediction is HOG and the truth value is unk_id
+not occur | UNK | unkown id. However, there is no UNK in the prediction values
+
+<!---
 + "H-truth value": the prediction is HOG.
 + "S": the prediction is true and the truth value is in [0..999]
 + "AU":  the prediction is true and the truth value is unk_id 
@@ -17,7 +30,7 @@ Artur Andrzejak, Jan 2020
 + "U-prediction value-truth value": the prediction is false and the truth value is unk_id
 
 + "HU": the prediction is HOG and the truth value is unk_id
-+ "UNK": unkown id. However, there is no UNK in the prediction values. I checked the CSV file again.
++ "UNK": unkown id. However, there is no UNK in the prediction values. I checked the CSV file again.--->
 
 #### Further notes
 Tuen, 20-01-2020, [email](https://mail.google.com/mail/u/0/?tab=wm#inbox/KtbxLvHcLqJnHqznMZSDHsTVrxWsqtbQBB)
