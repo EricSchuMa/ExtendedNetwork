@@ -300,8 +300,6 @@ def log_predictions_with_locations(result_logger, count_of_predictions, step, te
     data_start = count_of_predictions
     line_dict = dict()
 
-    # print ("################################################################################################")
-    # print ("global_index, step, orig_test_data, label, prediction, new_prediction, file_id, src_line, ast_node_idx")
     for epoch_data_row_idx in range(size_epoch_out):
         global_row_idx = data_start + epoch_data_row_idx
         global_location_idx = global_row_idx * LOCATION_ENTRIES_PER_INPUT_ENCODING
@@ -320,12 +318,6 @@ def log_predictions_with_locations(result_logger, count_of_predictions, step, te
         line_dict["src_line"] = locations_longline[global_location_idx + 1]
         line_dict["ast_node_idx"] = locations_longline[global_location_idx + 2]
         result_logger.writerow(line_dict)
-
-        # print ("%d, %d, %d, %d, %d, %d, %d, %d, %d" %
-        #        (global_row_idx, step, test_terminal_longline[global_row_idx],
-        #         labels_vec[local_row_idx], predictions_vec[local_row_idx], new_predictions_vec[local_row_idx],
-        #         locations_longline[global_location_idx], locations_longline[global_location_idx+1],
-        #         locations_longline[global_location_idx+2]))
 
 
 

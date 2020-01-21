@@ -62,11 +62,13 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                         for i, (dic, dic_hog) in enumerate(zip(data, data_hog)):  # JS data[:-1] or PY data
                             if 'value' in dic.keys():
                                 dic_value = dic['value']
-                                if dic_value in terminal_dict.keys():  # take long time!!!
+                                if dic_value in terminal_dict:
+                                    # Token is in the sequence model dictionary
                                     terminal_line.append(terminal_dict[dic_value])
                                     attn_que.append('NormaL')
                                 else:
                                     if dic_value in attn_que:
+                                        # token is in attention window, but _not_ in seq model dict,
                                         location_index = [len(attn_que)-ind for ind, x
                                                           in enumerate(attn_que) if x == dic_value][-1]
                                         location_id = unk_id + 2 + location_index  # [unk, hog_id, eof, loc_idx]
@@ -74,11 +76,14 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                         attn_success_cnt += 1
 
                                     else:
+                                        # pointer network cannot predict, try phog now
                                         attn_fail_cnt += 1
                                         if dic_value == dic_hog["value"]:
+                                            # obviously phog has predicted correctly (ask Max)
                                             hog_success_cnt += 1
                                             terminal_line.append(hog)
                                         else:
+                                            # pointer cannot predict, phog failed
                                             terminal_line.append(unk_id)
                                             failout.write('Prediction %s, GroundTruth %s \n'
                                                           % (dic_value, dic_hog["value"]))
@@ -134,10 +139,18 @@ def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData
 if __name__ == '__main__':
     start_time = time.time()
     attn_size = 50
+    SKIP_TRAIN_DATA = False
     terminal_dict, terminal_num, vocab_size = restore_terminal_dict(terminal_dict_filename)
-    trainData = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
-                        verbose=False, is_train=True)
-    testData = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
-                       verbose=False, is_train=False)
-    save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
+    if SKIP_TRAIN_DATA:
+        target_filename_debug = '../pickle_data/PY_terminal_1k_extended_debug.pickle'
+        testData = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+                           verbose=False, is_train=False)
+        save(target_filename_debug, terminal_dict, terminal_num, vocab_size, attn_size, testData, testData)
+    else:
+        trainData = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+                            verbose=False, is_train=True)
+        testData = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+                           verbose=False, is_train=False)
+        save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
+
     print('Finishing generating terminals and takes %.2f' % (time.time() - start_time))
