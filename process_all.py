@@ -30,6 +30,7 @@ class ConfigDefaults:
     dir_json_data: str = 'data/'
     dir_pickle: str = 'neural_code_completion/pickle_data/'
     dir_models: str = 'neural_code_completion/models/logs/'
+    dir_result_logs: str = 'dataout/result_log/'
 
     # Original data downloaded from ETHZ at https://www.sri.inf.ethz.ch/py150
     py_json_100k: str = 'python100k_train.json'
@@ -80,8 +81,8 @@ class ConfigLocationData(ConfigDefaults):
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
-    # Files used for creating models
-    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
+
+    results_log_filename: str = 'results_log.csv'
 
 # @dataclass
 class ConfigProcessingSteps:
@@ -114,9 +115,10 @@ def run_evaluation(config):
     py_pickle_eval_nonterminal_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
     py_pickle_eval_terminal_filename = config.dir_pickle + config.py_pickle_eval_terminal
     py_model_tf_filename = config.dir_models + config.py_model_tf_phog_debug
+    result_log_filename = config.dir_result_logs + config.results_log_filename
 
     evaluation_processor.main(py_pickle_eval_nonterminal_filename, py_pickle_eval_terminal_filename,
-                                                     py_model_tf_filename)
+                                                     py_model_tf_filename, result_log_filename)
 
 
 ### Overall execution

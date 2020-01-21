@@ -240,7 +240,7 @@ def get_config():
         raise ValueError("Invalid model: %s", FLAGS.model)
 
 
-def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logger_filename=None):
+def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logger_filename):
     global FLAGS, eval_config, eval_config
     setup_tensorflow()
     # logging = tf.logging
@@ -266,7 +266,6 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logge
     test_data_terminal_transformed, location_data_transformed = \
         rearrange_input_data_numpy(eval_config, data['test_dataT'], data['test_locations'])
 
-    logger_filename = 'results_log.csv' if logger_filename is None else logger_filename
     result_logger, logging_file = prepare_result_logger(logger_filename)
 
     # Evaluating the Extended Network
@@ -287,6 +286,7 @@ RESULT_LOG_FIELDNAMES = ["prediction_idx", "epoch_num", "truth", "prediction", "
 
 
 def prepare_result_logger(logger_filename=None):
+    logger_filename = 'results_log.csv' if logger_filename is None else logger_filename
     logging_file = open(logger_filename, mode='w', encoding='utf-8', newline='')
     csv_writer = csv.DictWriter(logging_file, delimiter=',', quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL, fieldnames=RESULT_LOG_FIELDNAMES)

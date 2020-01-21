@@ -1,7 +1,7 @@
 # Artur Andrzejak, Jan 2020
 
 #%% Load data
-result_log_dir = "../data/result_log/"
+result_log_dir = "../dataout/result_log/"
 result_file_name = "2020-01-19-18h57-results_log.csv"
 
 import pandas as pd
