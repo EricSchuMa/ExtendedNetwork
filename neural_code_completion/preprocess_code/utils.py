@@ -1,10 +1,6 @@
 #Utilities for preprocess the data
 
-import numpy as np
 from six.moves import cPickle as pickle
-import json
-from collections import deque
-import time
 import copy
 
 
@@ -91,7 +87,7 @@ def change_protocol_for_T(filename):
     pickle.dump(save, f, protocol=2)
     f.close()
 
-
+# AA - not used
 class DataEncoder:
     """
     Encodes input data by unique integers (keys), and stores a mapping keys => original data.
@@ -146,6 +142,55 @@ class DataEncoder:
         output_list_of_lists = copy.deepcopy(encoded_values)
         return self._transform(encoded_values, output_list_of_lists,
                                map_element_func=lambda key, step_idx: self.keys_to_original_values[key])
+
+
+from recordclass import RecordClass
+
+default_filename_node_facts = '../pickle_data/PY_node_facts_python10k_dev_1k_dict.pickle'
+
+class PredictionData(RecordClass):
+    has_terminal: bool = False
+    in_dict: bool = False
+    in_attn_window: bool = False
+    phog_ok: bool = False
+    ast_idx: int = None
+    node_idx: int = None
+
+
+class PredictionsContainer():
+    """
+    A container for facts about ground-truth/predictions for an AST-node.
+    Organized as a dict (node location as tuple (file_id, line_id, ast_id)) -> PredictionData)
+    Supports picle save/load
+    """
+    def __init__(self, filename=None):
+        # self.key_class = namedtuple('Location', ['file_id', 'line_id', 'node_id'])
+        self.data = dict()
+        if filename is not None:
+            self.from_pickle(filename)
+
+    # def add(self, location, has_terminal, in_dict, in_attn_window, phog_ok, ast_idx):
+    def add(self, location: tuple, predictionData: PredictionData):
+        location_tuple = tuple(location) if isinstance(location, list) else location
+        self.data[location_tuple] = predictionData
+
+        # sample = PredictionData(has_terminal, in_dict, in_attn_window, phog_ok, ast_idx)
+        # key = PredictionLocation(file_id, line_id, node_id)
+        # key = self.key_class(file_id, line_id, node_id)
+
+    def get(self, location_triple: tuple):
+        return self.data[location_triple]
+
+    def to_pickle(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f, protocol=2)
+
+    def from_pickle(self, filename):
+        with open(filename, 'rb') as f:
+            loaded = pickle.load(f)
+            self.data = loaded.data
+
+
 
 if __name__ == '__main__':
     
