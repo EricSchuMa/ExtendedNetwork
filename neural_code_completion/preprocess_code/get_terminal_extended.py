@@ -6,6 +6,7 @@
 
 from six.moves import cPickle as pickle
 from collections import deque
+from recordclass import RecordClass
 
 import json
 import time
@@ -20,39 +21,33 @@ test_filename = '../../data/python10k_dev.json'
 testHOG_filename = '../../data/phog-json/phog_dev.json'
 target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
 
-from recordclass import RecordClass, recordclass
 
-class PredictionSample(RecordClass):
+class PredictionData(RecordClass):
     has_terminal: bool
     in_dict: bool
     in_attn_window: bool
     phog_ok: bool
-    file_id: int
-    line_id: int
-    node_id: int
+    ast_idx: int
 
 
 class PredictionsContainer():
     # sample_class = recordclass ("PredictionSample", "has_terminal in_dict in_attn_window phog_ok file_id line_id node_id")
 
     def __init__(self):
-        self._predictions = list()
+        self.data = dict()
+#       self.key_class = namedtuple('Location', ['file_id', 'line_id', 'node_id'])
 
-    def append(self, has_terminal, in_dict, in_attn_window, phog_ok, file_id, line_id, node_id):
-        sample = PredictionSample(has_terminal, in_dict, in_attn_window, phog_ok, file_id, line_id, node_id)
-        # sample.has_terminal = has_terminal
-        # sample.in_dict = in_dict
-        # sample.in_attn_window = in_attn_window
-        # sample.phog_ok = phog_ok
-        # sample.file_id = file_id
-        # sample.line_id = line_id
-        # sample.node_id = node_id
+    def add(self, location, has_terminal, in_dict, in_attn_window, phog_ok, ast_idx):
 
-        self._predictions.append(sample)
+        sample = PredictionData(has_terminal, in_dict, in_attn_window, phog_ok, ast_idx)
+        # key = PredictionLocation(file_id, line_id, node_id)
+        # key = self.key_class(file_id, line_id, node_id)
 
-    def get_all(self):
-        """todo: make this class iterable instead"""
-        return self._predictions
+        location_tuple = tuple(location) if isinstance(location, list) else location
+        self.data[location_tuple] = sample
+
+    def get(self, location_triple: tuple):
+        return self.data[location_triple]
 
 
 def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=False):
@@ -78,11 +73,10 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                 hog_success_total = 0
                 hog_fail_total = 0
                 length_total = 0
-                line_index = 0
                 hog = unk_id + 1
 
-                # A list of predictions over all files (ASTs)
-                all_prediction_data = list()
+                predictionsContainer = PredictionsContainer()
+                line_index = -1
 
                 for line, line_hog in zip(lines, lines_hog):
                     line_index += 1
@@ -98,17 +92,14 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                         hog_success_cnt = 0
                         hog_fail_cnt = 0
 
-                        # A list of results
-                        predictions_for_ast = PredictionsContainer()
-
                         for i, (dic, dic_hog) in enumerate(zip(data, data_hog)):  # JS data[:-1] or PY data
                             node_has_terminal = 'value' in dic
 
-                            is_in_terminal_dict = 0
-                            is_in_attention_window = 0
-                            phog_predicted_ok = 0
+                            is_in_terminal_dict = False
+                            is_in_attention_window = False
+                            phog_predicted_ok = False
 
-                            location = dic['location']
+                            location = dic['location']  # a list
 
                             if node_has_terminal:
                                 dic_value = dic['value']
@@ -146,16 +137,13 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                             else:
                                 terminal_line.append(terminal_dict['EmptY'])
                                 attn_que.append('EmptY')
-                            predictions_for_ast.append(node_has_terminal, is_in_terminal_dict, is_in_attention_window,
-                                                       phog_predicted_ok, location[0], location[1], location[2])
-                        terminal_corpus.append(terminal_line)
-                        attn_success_total += attn_success_cnt
+                            predictionsContainer.add(location, node_has_terminal, is_in_terminal_dict,
+                                                     is_in_attention_window, phog_predicted_ok, line_index)
                         attn_fail_total += attn_fail_cnt
                         attn_total = attn_success_total + attn_fail_total
                         hog_success_total += hog_success_cnt
                         hog_fail_total += hog_fail_cnt
                         length_total += len(data)
-                        all_prediction_data.append(predictions_for_ast)
 
                         if verbose and line_index % 1000 == 0:
                             print('\nUntil line %d: attn_success_total: %d, attn_fail_total: %d, success/attn_total: %.4f,'
@@ -179,10 +167,10 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                 float(hog_success_total) / hog_fail_total, length_total,
                                 float(hog_success_total) / length_total,
                                 float(attn_total) / length_total))
-            return terminal_corpus, all_prediction_data
+            return terminal_corpus, predictionsContainer
 
 
-def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData):
+def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData, predictionsContainer):
     with open(filename, 'wb') as f:
         save = {'terminal_dict': terminal_dict,
                 'terminal_num': terminal_num,
@@ -190,24 +178,27 @@ def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData
                 'attn_size': attn_size,
                 'trainData': trainData,
                 'testData': testData,
+                'predictionsContainer' : predictionsContainer
                 }
         pickle.dump(save, f, protocol=2)
 
+import gc
 
 if __name__ == '__main__':
+    gc.disable()
     start_time = time.time()
     attn_size = 50
     SKIP_TRAIN_DATA = True
     terminal_dict, terminal_num, vocab_size = restore_terminal_dict(terminal_dict_filename)
     if SKIP_TRAIN_DATA:
-        target_filename_debug = '../pickle_data/PY_terminal_1k_extended_debug.pickle'
-        testData, all_prediction_data = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+        target_filename_debug = '../pickle_data/PY_terminal_1k_extended_all_predictions.pickle'
+        testData, predictionsContainer = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
                            verbose=False, is_train=False)
-        save(target_filename_debug, terminal_dict, terminal_num, vocab_size, attn_size, testData, testData)
+        save(target_filename_debug, terminal_dict, terminal_num, vocab_size, attn_size, testData, testData, predictionsContainer)
     else:
-        trainData, train_prediction_data = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+        trainData, predictionsContainer = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
                             verbose=False, is_train=True)
-        testData, test_prediction_data = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+        testData, predictionsContainer = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
                            verbose=False, is_train=False)
         save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
 
