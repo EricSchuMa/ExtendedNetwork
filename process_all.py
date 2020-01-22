@@ -7,18 +7,23 @@
 # from dataclasses import dataclass
 import time
 
-# The following allows running the project on cmd line, with cmd:
-# nohup /home/artur/venv/bin/python process_all.py
 LINUX = True
+import sys
+# The following allows running the project on cmd line, with cmd:
 if LINUX:
-    import sys;
+    # nohup /home/artur/venv/bin/python process_all.py
+    project_root = '/home/artur/IdeaProjects/'
+else:
+    # todo: describe windows command to start
+    project_root = 'C:/Artur/Projects/CodeAssistance/ExtendedNetworkCode/ExtendedNetworkMax/'
 
-    print('Python %s on %s' % (sys.version, sys.platform))
-    sys.path.extend(['/home/artur/IdeaProjects/ExtendedNetwork',
-                     '/home/artur/IdeaProjects/ExtendedNetwork/neural_code_completion',
-                     '/home/artur/IdeaProjects/ExtendedNetwork/neural_code_completion/models',
-                     '/home/artur/IdeaProjects/ExtendedNetwork/Evaluation',
-                     '/home/artur/IdeaProjects/ExtendedNetwork/AST2json'])
+print('Python %s on %s' % (sys.version, sys.platform))
+sys.path.extend([project_root,
+                 project_root + '/neural_code_completion',
+                 project_root + '/neural_code_completion/models',
+                 project_root + '/neural_code_completion/models/preprocess_code',
+                 project_root + '/Evaluation',
+                 project_root + '/AST2json'])
 
 
 # @dataclass

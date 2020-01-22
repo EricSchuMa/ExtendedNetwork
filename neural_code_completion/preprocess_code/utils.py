@@ -146,7 +146,7 @@ class DataEncoder:
 
 from recordclass import RecordClass
 
-default_filename_node_facts = '../pickle_data/PY_node_facts_python10k_dev_1k_dict.pickle'
+default_filename_node_facts = 'PY_node_facts_python10k_dev_1k_dict.pickle'
 
 class PredictionData(RecordClass):
     has_terminal: bool = False

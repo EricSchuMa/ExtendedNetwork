@@ -188,6 +188,6 @@ if __name__ == '__main__':
         save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
 
     from utils import default_filename_node_facts
-    node_facts_container.to_pickle(default_filename_node_facts)
+    node_facts_container.to_pickle('../pickle_data/' + default_filename_node_facts)
 
     print('Finishing generating terminals and takes %.2f' % (time.time() - start_time))
