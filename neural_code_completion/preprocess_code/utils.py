@@ -172,7 +172,7 @@ class PredictionsContainer():
     # def add(self, location, has_terminal, in_dict, in_attn_window, phog_ok, ast_idx):
     def add(self, location: tuple, predictionData: PredictionData):
         location_tuple = tuple(location) if isinstance(location, list) else location
-        self.data[location_tuple] = predictionData
+        self.data[location_tuple] = tuple(predictionData)
 
         # sample = PredictionData(has_terminal, in_dict, in_attn_window, phog_ok, ast_idx)
         # key = PredictionLocation(file_id, line_id, node_id)
@@ -183,13 +183,18 @@ class PredictionsContainer():
 
     def to_pickle(self, filename):
         with open(filename, 'wb') as f:
-            pickle.dump(self, f, protocol=2)
+            pickle.dump(self.data, f, fix_imports=True)
 
     def from_pickle(self, filename):
         with open(filename, 'rb') as f:
             loaded = pickle.load(f)
             self.data = loaded.data
 
+
+def from_pickle(filename):
+    with open(filename, 'rb') as f:
+        loaded = pickle.load(f)
+        return loaded
 
 
 if __name__ == '__main__':
