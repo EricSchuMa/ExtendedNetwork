@@ -22,41 +22,45 @@ sys.path.extend([project_root,
                  project_root + 'Evaluation',
                  project_root + 'AST2json'])
 
+PREPROCESSING_ENABLED = False
+if PREPROCESSING_ENABLED:
+    #%%
+    import pandas as pd
+    import numpy as np
+    #%% Load data
+    # Important: run with working directory == project root!
+
+
+    from neural_code_completion.preprocess_code.utils import \
+        PredictionsContainer, PredictionData, default_filename_node_facts, from_pickle
+
+    # node_facts = PredictionsContainer(filename_node_facts)
+    filename_node_facts = "neural_code_completion/pickle_data/" + default_filename_node_facts
+    node_facts_dict: dict = from_pickle(filename_node_facts)
+
 #%%
-import pandas as pd
-import numpy as np
-#%% Load data
-# Important: run with working directory == project root!
+    cache_dir = 'data/cache/'
+    result_log_dir = "dataout/result_log/"
+    result_file_name = "2020-01-19-18h57-results_log.csv"
+    data_raw = data = pd.read_csv(result_log_dir + result_file_name)
 
 
-from neural_code_completion.preprocess_code.utils import \
-    PredictionsContainer, PredictionData, default_filename_node_facts, from_pickle
+    #%% # convert node_facts_dict to df
+    cols = ['file_id', 'src_line', 'ast_node_idx', 'has_terminal', 'in_dict',
+            'in_attn_window', 'phog_ok', 'ast_idx', 'node_idx' ]
 
-# node_facts = PredictionsContainer(filename_node_facts)
-filename_node_facts = "neural_code_completion/pickle_data/" + default_filename_node_facts
-node_facts_dict: dict = from_pickle(filename_node_facts)
+    keys = list(node_facts_dict.keys())
+    vals = list(node_facts_dict.values())
 
-cache_dir = 'data/cache/'
-result_log_dir = "dataout/result_log/"
-result_file_name = "2020-01-19-18h57-results_log.csv"
-data_raw = data = pd.read_csv(result_log_dir + result_file_name)
+    # print("Item 0 from lists: ",  keys[0], vals[0]) # Item 0 from lists:  (54190, 5, 0) (False, False, False, False, 0, 0)
+    # print ("As list: ", [*keys[0], *vals[0]]) # [54190, 5, 0, False, False, False, False, 0, 0]
+    node_facts_list_of_lists = [[*keys[i], *vals[i]] for i in range(len(keys)) ]
+    node_facts_df = pd.DataFrame(node_facts_list_of_lists, columns=cols, dtype=np.int32)
 
+    #%% Join dataframes and save
+    merged_df = pd.merge(data_raw, node_facts_df, how='left', on=['file_id', 'src_line', 'ast_node_idx'])
+    merged_df.to_pickle(cache_dir + 'merged_df.data')
 
-#%% # convert node_facts_dict to df
-cols = ['file_id', 'src_line', 'ast_node_idx', 'has_terminal', 'in_dict',
-        'in_attn_window', 'phog_ok', 'ast_idx', 'node_idx' ]
-
-keys = list(node_facts_dict.keys())
-vals = list(node_facts_dict.values())
-
-# print("Item 0 from lists: ",  keys[0], vals[0]) # Item 0 from lists:  (54190, 5, 0) (False, False, False, False, 0, 0)
-# print ("As list: ", [*keys[0], *vals[0]]) # [54190, 5, 0, False, False, False, False, 0, 0]
-node_facts_list_of_lists = [[*keys[i], *vals[i]] for i in range(len(keys)) ]
-node_facts_df = pd.DataFrame(node_facts_list_of_lists, columns=cols, dtype=np.int32)
-
-#%% Join dataframes
-merged_df = pd.merge(data_raw, node_facts_df, how='left', on=['file_id', 'src_line', 'ast_node_idx'])
-merged_df.to_pickle(cache_dir + 'merged_df.data')
 
 ######################################
 #%% Reload cached df
@@ -65,15 +69,16 @@ import pandas as pd
 hog_id = 1001
 cache_dir = 'data/cache/'
 merged_df = pd.read_pickle(cache_dir + 'merged_df.data')
+dt = pd.read_pickle(cache_dir + 'data terminal only (dt).data')
 
 #%% Remove unneeded cols and rows
 ## data = on merged_df | drop columns 'prediction_idx' 'epoch_num' 'ast_idx' 'node_idx'
 data = merged_df.drop(columns=['prediction_idx', 'epoch_num', 'ast_idx', 'node_idx'])
+
 #%% Add column which tells whether prediction worked (i.e. truth=prediction, including case 1001 (new_prediction = 0)
 # todo: check the case that (prediction == hogID == 1001  AND phog_ok = 1 )as an alternative
-data = data.assign(**{'is_ok': data.apply(lambda row:
-                                          (row.truth == row.prediction and row.prediction == hog_id
-                                           and row.phog_ok == 1),  axis=1).values})
+# data = data.assign(**{'is_ok': data.apply(lambda row: (row.truth == row.prediction or
+#                                           (row.prediction == hog_id and row.phog_ok == 1)), axis=1).values})
 
 #%% data = on data | select rows data.truth != 1002
 data = data[data.truth != 1002]
@@ -83,13 +88,17 @@ print ("Number of all nodes without padding = ", len(data))
 #%% terminal-only data
 dt = data[data.truth != 0]
 
+cache_dir = 'data/cache/'
+# dt.to_pickle(cache_dir + 'data terminal only (dt).data')
+
+
 #%% results dictionary and first stats
 res = dict()
 
 nrows = dt.shape[0]
 res['d10_term_to_all'] = nrows  / data.shape[0]
 res['abs10_count_terminals'] = nrows
-res['p05_rnn_could'] = (dt[dt.in_dict == 1]).shape[0] / nrows
+res['p05_rnn_could'] = (dt[(dt.in_dict == 1) | (dt.truth == 0)]).shape[0] / nrows
 res['p06_attn_could'] = (dt[dt.in_attn_window == 1]).shape[0] / nrows
 res['p07_phog_could'] = (dt[dt.phog_ok == 1]).shape[0] / nrows
 
