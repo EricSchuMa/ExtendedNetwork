@@ -6,16 +6,22 @@
 
 # from dataclasses import dataclass
 import time
-
-LINUX = True
+from enum import Enum
 import sys
-# The following allows running the project on cmd line, with cmd:
-if LINUX:
-    # nohup /home/artur/venv/bin/python process_all.py
-    project_root = '/home/artur/IdeaProjects/'
-else:
-    # todo: describe windows command to start
-    project_root = 'C:/Artur/Projects/CodeAssistance/ExtendedNetworkCode/ExtendedNetworkMax/'
+
+
+class Platform(Enum):
+    ARTUR_WIN: str = 'C:/Artur/Projects/CodeAssistance/ExtendedNetworkCode/ExtendedNetworkMax/'
+    ARTUR_LINUX: str = '/home/artur/IdeaProjects/'
+    # todo: set the paths for Tuyen
+    TUYEN_WIN: str = '---todo: set path ---'
+    TUYEN_LINUX: str = '---todo: set path ---'
+
+
+# todo: get from cmd line or local file
+myPlatform = Platform.ARTUR_WIN
+
+project_root: str = myPlatform.value
 
 print('Python %s on %s' % (sys.version, sys.platform))
 sys.path.extend([project_root,
@@ -31,11 +37,19 @@ class ConfigDefaults:
     """
     Default settings, to be subclassed. Paths are from project root.
     """
-    dir_src_files: str = 'data/source_files/'
-    dir_json_data: str = 'data/'
-    dir_pickle: str = 'neural_code_completion/pickle_data/'
-    dir_models: str = 'neural_code_completion/models/logs/'
-    dir_result_logs: str = 'dataout/result_log/'
+    dir_json_ast_data: str = 'data/json_ast_data/'
+    dir_pickle: str = 'data/pickle_data/'
+    dir_models: str = 'data/trained_models/'
+    dir_result_logs: str = 'data/result_log/'
+
+    # Old dir schema, data mixed with source code
+    # dir_pickle: str = 'neural_code_completion/pickle_data/'
+    # dir_models: str = 'neural_code_completion/models/logs/'
+
+    # For source code to json ast data / prediction viewer
+    dir_src_files: str = 'data/json_source_files/'
+    dir_prediction_viewer: str = 'data/prediction_viewer/'
+
 
     # Original data downloaded from ETHZ at https://www.sri.inf.ethz.ch/py150
     py_json_100k: str = 'python100k_train.json'
@@ -57,7 +71,7 @@ class ConfigMaxFromTestPreprocess(ConfigDefaults):
     Path configuration taken from neural_code_completion/tests/test_preprocess.py
     """
     terminal_whole: str = 'PY_terminal_1k_whole.pickle'
-    terminal_dict_filename: str = 'pickle_data/terminal_dict_1k_PY.pickle'
+    terminal_dict_filename: str = 'terminal_dict_1k_PY.pickle'
     train_filename: str = 'python100k_train.json'
     trainHOG_filename: str = 'phog_pred_100k_train.json'
     test_filename: str = 'python50k_eval.json'
@@ -86,8 +100,8 @@ class ConfigLocationData(ConfigDefaults):
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
 
-
     results_log_filename: str = 'results_log.csv'
+
 
 # @dataclass
 class ConfigProcessingSteps:
@@ -99,10 +113,12 @@ class ConfigProcessingSteps:
     create_models: bool = False
     run_evaluation: bool = True
 
-#%%
+
+# %%
 ### Functions for individual steps
 def run_create_json(config):
     pass
+
 
 def run_create_pickle(config):
     import neural_code_completion.preprocess_code.get_non_terminal_with_location as processor
@@ -110,10 +126,12 @@ def run_create_pickle(config):
     test_filename = config.dir_json_data + config.py_json_10k
     target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
 
-    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename= target_filename)
+    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename)
+
 
 def run_create_models(config):
     pass
+
 
 def run_evaluation(config):
     import Evaluation.evaluation_with_loc as evaluation_processor
@@ -123,7 +141,7 @@ def run_evaluation(config):
     result_log_filename = config.dir_result_logs + config.results_log_filename
 
     evaluation_processor.main(py_pickle_eval_nonterminal_filename, py_pickle_eval_terminal_filename,
-                                                     py_model_tf_filename, result_log_filename)
+                              py_model_tf_filename, result_log_filename)
 
 
 ### Overall execution
@@ -132,19 +150,19 @@ def run_all(configProcessingSteps, config):
     Executes selected processing steps
     """
     if configProcessingSteps.create_json:
-        print ("Executing run_create_json ...")
+        print("Executing run_create_json ...")
         run_create_json(config)
 
     if configProcessingSteps.create_pickle:
-        print ("Executing run_create_pickle ...")
+        print("Executing run_create_pickle ...")
         run_create_pickle(config)
 
     if configProcessingSteps.create_models:
-        print ("Executing run_create_models ...")
+        print("Executing run_create_models ...")
         run_create_models(config)
 
     if configProcessingSteps.run_evaluation:
-        print ("Executing run_evaluation ...")
+        print("Executing run_evaluation ...")
         run_evaluation(config)
 
 
