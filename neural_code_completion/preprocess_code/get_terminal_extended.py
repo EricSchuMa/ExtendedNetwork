@@ -15,13 +15,6 @@ from neural_code_completion.preprocess_code.get_terminal_original import restore
 
 from utils import PredictionData, PredictionsContainer
 
-terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
-train_filename = '../../data/python90k_train.json'
-trainHOG_filename = '../../data/phog-json/phog_train.json'
-test_filename = '../../data/python10k_dev.json'
-testHOG_filename = '../../data/phog-json/phog_dev.json'
-target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
-
 
 
 def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=False):
@@ -119,8 +112,8 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
                                    float(attn_success_total)/attn_total, length_total,
                                    float(attn_success_total)/length_total,
                                    float(attn_total)/length_total))
-                write_output_file(attn_fail_total, attn_success_total, attn_total, hog_fail_total, hog_success_total,
-                                  length_total)
+                # write_output_file(attn_fail_total, attn_success_total, attn_total, hog_fail_total, hog_success_total,
+                #                  length_total)
             return terminal_corpus, node_facts_container
 
 
@@ -168,26 +161,43 @@ def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData
         pickle.dump(save, f, protocol=2)
 
 
-if __name__ == '__main__':
+def main(terminal_dict_filename, train_filename, trainHOG_filename, test_filename, target_filename,
+         filename_node_facts, skip_train_data):
     import gc
     gc.disable()
     start_time = time.time()
     attn_size = 50
-    SKIP_TRAIN_DATA = True
     terminal_dict, terminal_num, vocab_size = restore_terminal_dict(terminal_dict_filename)
-    if SKIP_TRAIN_DATA:
-        target_filename_debug = '../pickle_data/PY_terminal_1k_extended_all_predictions.pickle'
-        testData, node_facts_container = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+    if skip_train_data:
+        # target_filename_debug = '../pickle_data/PY_terminal_1k_extended_all_predictions.pickle'
+        testData, node_facts_container = process(test_filename, testHOG_filename, terminal_dict, vocab_size,
+                                                 attn_size=attn_size,
                                                  verbose=False, is_train=False)
         save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, testData, testData)
     else:
         trainData, _ = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
-                                                  verbose=False, is_train=True)
-        testData, node_facts_container = process(test_filename, testHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+                               verbose=False, is_train=True)
+        testData, node_facts_container = process(test_filename, testHOG_filename, terminal_dict, vocab_size,
+                                                 attn_size=attn_size,
                                                  verbose=False, is_train=False)
         save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
 
-    from utils import default_filename_node_facts
-    node_facts_container.to_pickle('../pickle_data/' + default_filename_node_facts)
 
+    node_facts_container.to_pickle(filename_node_facts)
     print('Finishing generating terminals and takes %.2f' % (time.time() - start_time))
+
+
+if __name__ == '__main__':
+    from utils import default_filename_node_facts
+
+    terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
+    train_filename = '../../data/python90k_train.json'
+    trainHOG_filename = '../../data/phog-json/phog_train.json'
+    test_filename = '../../data/python10k_dev.json'
+    testHOG_filename = '../../data/phog-json/phog_dev.json'
+    target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
+    filename_node_facts = '../pickle_data/' + default_filename_node_facts
+
+    SKIP_TRAIN_DATA = True
+    main(terminal_dict_filename, train_filename, trainHOG_filename, test_filename, testHOG_filename, target_filename,
+         filename_node_facts, skip_train_data=SKIP_TRAIN_DATA)

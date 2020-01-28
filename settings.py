@@ -4,6 +4,7 @@
 # from dataclasses import dataclass
 import sys
 from pathlib import Path
+from enum import Enum
 
 
 def include_all_project_paths():
@@ -26,25 +27,32 @@ def include_all_project_paths():
 include_all_project_paths()
 
 
-class DirectoryPathsDefaults:
+
+
+class Dirs(Enum):
     """
     Default paths to directories, relative to project root.
     """
-    dir_json_ast_data: str = 'data/json_ast_data/'
-    dir_pickle: str = 'data/pickle_data/'
-    dir_models: str = 'data/trained_models/'
-    dir_result_logs: str = 'data/result_log/'
+    JSON_AST: str = 'data/json_ast_data/'
+    PICKLE_AST: str = 'data/pickle_data/'
+    MODELS_TF: str = 'data/trained_models/'
+    RESULT_LOGS: str = 'data/result_log/'
 
     # Old dir schema, data mixed with source code
-    # dir_pickle: str = 'neural_code_completion/pickle_data/'
-    # dir_models: str = 'neural_code_completion/models/logs/'
+    # pickle_ast: str = 'neural_code_completion/pickle_data/'
+    # models: str = 'neural_code_completion/models/logs/'
 
     # For source code to json ast data / prediction viewer
-    dir_src_files: str = 'data/json_source_files/'
-    dir_prediction_viewer: str = 'data/prediction_viewer/'
+    PY_SOURCE: str = 'data/json_source_files/'
+    PRED_VIEWER: str = 'data/prediction_viewer/'
 
 
-class ConfigDefaults(DirectoryPathsDefaults):
+def fullpath(dir_name: str, file_name: str):
+    dir_path = Path(Dirs[dir_name].value) if isinstance(dir_name, str) else Path(dir_name.value)
+    return str(dir_path / file_name)
+
+
+class ConfigDefaults():
     """
     Default settings, to be subclassed
     """
@@ -60,10 +68,12 @@ class ConfigDefaults(DirectoryPathsDefaults):
 
     # Files used for creating models
     # py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
-    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
+    _py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
+    _py_model_tf_10k_dict: str = '2020-01-28-PMN--2/PMN--2'
+
+    py_model_latest: str = _py_model_tf_10k_dict
 
 
-# @dataclass
 class ConfigMaxFromTestPreprocess(ConfigDefaults):
     """
     Path configuration taken from neural_code_completion/tests/test_preprocess.py
@@ -77,7 +87,6 @@ class ConfigMaxFromTestPreprocess(ConfigDefaults):
     target_filename: str = 'test_get_terminal_extended.pickle'
 
 
-# @dataclass
 class ConfigDebug(ConfigDefaults):
     """
     Debugging configuration based on files used in the evaluation.py (received from Max ~6.01.2020) and evaluation_v02.py
