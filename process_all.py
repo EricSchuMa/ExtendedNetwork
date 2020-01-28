@@ -1,109 +1,9 @@
 # Controls the complete processing flow
 # Artur Andrzejak, Jan 2020
 
-
-# %% Configuration
-
-# from dataclasses import dataclass
-import time
-from enum import Enum
-import sys
+import settings
 
 
-class Platform(Enum):
-    ARTUR_WIN: str = 'C:/Artur/Projects/CodeAssistance/ExtendedNetworkCode/ExtendedNetworkMax/'
-    ARTUR_LINUX: str = '/home/artur/IdeaProjects/'
-    # todo: set the paths for Tuyen
-    TUYEN_WIN: str = '---todo: set path ---'
-    TUYEN_LINUX: str = '---todo: set path ---'
-
-
-# todo: get from cmd line or local file
-myPlatform = Platform.ARTUR_WIN
-
-project_root: str = myPlatform.value
-
-print('Python %s on %s' % (sys.version, sys.platform))
-sys.path.extend([project_root,
-                 project_root + '/neural_code_completion',
-                 project_root + '/neural_code_completion/models',
-                 project_root + '/neural_code_completion/models/preprocess_code',
-                 project_root + '/Evaluation',
-                 project_root + '/AST2json'])
-
-
-# @dataclass
-class ConfigDefaults:
-    """
-    Default settings, to be subclassed. Paths are from project root.
-    """
-    dir_json_ast_data: str = 'data/json_ast_data/'
-    dir_pickle: str = 'data/pickle_data/'
-    dir_models: str = 'data/trained_models/'
-    dir_result_logs: str = 'data/result_log/'
-
-    # Old dir schema, data mixed with source code
-    # dir_pickle: str = 'neural_code_completion/pickle_data/'
-    # dir_models: str = 'neural_code_completion/models/logs/'
-
-    # For source code to json ast data / prediction viewer
-    dir_src_files: str = 'data/json_source_files/'
-    dir_prediction_viewer: str = 'data/prediction_viewer/'
-
-
-    # Original data downloaded from ETHZ at https://www.sri.inf.ethz.ch/py150
-    py_json_100k: str = 'python100k_train.json'
-    py_json_50k: str = 'python50k_eval.json'
-
-    # Result of running neural_code_completion/preprocess_code/build_dataset.py,
-    # Generates a "random" split of py_json_100k (90% to 10%). Used in Max thesis.
-    py_json_90k: str = 'python90k_train.json'
-    py_json_10k: str = 'python10k_dev.json'
-
-    # Files used for creating models
-    # py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
-    py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
-
-
-# @dataclass
-class ConfigMaxFromTestPreprocess(ConfigDefaults):
-    """
-    Path configuration taken from neural_code_completion/tests/test_preprocess.py
-    """
-    terminal_whole: str = 'PY_terminal_1k_whole.pickle'
-    terminal_dict_filename: str = 'terminal_dict_1k_PY.pickle'
-    train_filename: str = 'python100k_train.json'
-    trainHOG_filename: str = 'phog_pred_100k_train.json'
-    test_filename: str = 'python50k_eval.json'
-    testHOG_filename: str = 'phog_pred_50k_eval.json'
-    target_filename: str = 'test_get_terminal_extended.pickle'
-
-
-# @dataclass
-class ConfigDebug(ConfigDefaults):
-    """
-    Debugging configuration based on files used in the evaluation.py (received from Max ~6.01.2020) and evaluation_v02.py
-    """
-    # Json files with ASTs (inherited)
-    # py_json_90k
-    # py_json_10k
-
-    # Pickle files used for result evaluation ("validation")
-    py_pickle_eval_nonterminal: str = 'PY_non_terminal_dev.pickle'
-    py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
-
-
-class ConfigLocationData(ConfigDefaults):
-    """
-    Debugging configuration based on files used in the evaluation.py (received from Max ~6.01.2020) and evaluation_v02.py
-    """
-    py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
-    py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
-
-    results_log_filename: str = 'results_log.csv'
-
-
-# @dataclass
 class ConfigProcessingSteps:
     """
     Determines which processing steps should be enabled
@@ -112,10 +12,11 @@ class ConfigProcessingSteps:
     create_pickle: bool = False
     create_models: bool = False
     run_evaluation: bool = True
+    run_eval_log_analysis: bool = False
 
 
 # %%
-### Functions for individual steps
+# Functions for individual steps
 def run_create_json(config):
     pass
 
@@ -144,6 +45,17 @@ def run_evaluation(config):
                               py_model_tf_filename, result_log_filename)
 
 
+def run_eval_log_analysis(config):
+    import Evaluation.result_log_analysis as eval_log_analyzer
+    py_pickle_eval_nonterminal_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
+    py_pickle_eval_terminal_filename = config.dir_pickle + config.py_pickle_eval_terminal
+    py_model_tf_filename = config.dir_models + config.py_model_tf_phog_debug
+    result_log_filename = config.dir_result_logs + config.results_log_filename
+
+    eval_log_analyzer.main(py_pickle_eval_nonterminal_filename, py_pickle_eval_terminal_filename,
+                           py_model_tf_filename, result_log_filename)
+
+
 ### Overall execution
 def run_all(configProcessingSteps, config):
     """
@@ -165,11 +77,17 @@ def run_all(configProcessingSteps, config):
         print("Executing run_evaluation ...")
         run_evaluation(config)
 
+    if configProcessingSteps.run_eval_log_analysis:
+        print("Executing analysis of evaluation log results ...")
+        run_eval_log_analysis(config)
+
 
 if __name__ == '__main__':
+    import time
+
     configProcessingSteps = ConfigProcessingSteps()
-    # config = ConfigDebug()
-    config = ConfigLocationData()
+    # config = settings.ConfigDebug()
+    config = settings.ConfigLocationData()
 
     start_time = time.time()
     print('Starting processing.')
