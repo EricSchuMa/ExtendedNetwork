@@ -256,12 +256,12 @@ def main(py_pickle_eval_nonterminal, py_pickle_eval_terminal, py_model_tf, logge
     dataN = data['test_dataN']
     dataT = data['test_dataT']
     print("Data sizes are: len(dataN) = %d, len(dataT) = %d" % (len(dataN), len(dataT)))
-    min_len = min(len(dataN), len(dataT))
-    dataN = dataN[:min_len]
-    dataT = dataN[:min_len]
+    # min_len = min(len(dataN), len(dataT))
+    # dataN = dataN[:min_len]
+    # dataT = dataN[:min_len]
     valid_data_ext_network = (dataN, dataT)
     vocab_size_ext_network = (data['vocab_sizeN']+ 1, data['vocab_sizeT'] + 3)  # N is [w, eof], T is [w, unk_id, hog_id, eof]
-
+    print("Vocabulary sizes are: #voc(dataN) = %d, #voc(dataT) = %d" % vocab_size_ext_network)
 
     # Prepare parameters for a 2 layer model
     eval_config = get_config()

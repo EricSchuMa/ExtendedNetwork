@@ -105,6 +105,32 @@ class ConfigLocationData(ConfigDefaults):
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
     results_log_filename: str = 'results_log.csv'
 
+    trainHOG_filename = 'phog_train.json'
+    testHOG_filename = 'phog_dev.json'
+    nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'
+
+
+class ConfigLocationData1k_old(ConfigLocationData):
+    # Files used for creating models
+    _py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
+    _py_model_tf_10k_dict_snap2: str = '2020-01-28-PMN--2/PMN--2'
+    _py_model_tf_10k_dict: str = '2020-01-28-PMN--3/PMN--3'
+    py_model_latest: str = _py_model_tf_phog_debug
+    #py_model_latest: str = _py_model_tf_10k_dict_snap2
+    #py_model_latest: str = _py_model_tf_phog_debug
+
+    # terminal_dict_filename: str = 'terminal_dict_10k_PY_train_dev.pickle'
+    # terminal_dict_filename: str = 'terminal_dict_10k_PY.pickle'
+    terminal_dict_filename: str = 'terminal_dict_1k_PY_train_dev.pickle'
+
+    # py_pickle_eval_terminal: str = 'PY_terminal_encoding_extended_10k_dict.pickle'
+    # py_pickle_eval_terminal: str = 'PY_terminal_10k_extended.pickle'
+    # py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
+    #py_pickle_eval_nonterminal: str = 'PY_non_terminal_encoding_extended_10k_dict.pickle'
+    #py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_50k_ast.pickle'
+    py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
+    py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
+
 
 class ConfigLocationData10kDict(ConfigLocationData):
     # Files used for creating models
@@ -125,6 +151,5 @@ class ConfigLocationData10kDict(ConfigLocationData):
     #py_pickle_eval_nonterminal: str = 'PY_non_terminal_encoding_extended_10k_dict.pickle'
     #py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_50k_ast.pickle'
 
-    trainHOG_filename = 'phog_train.json'
-    testHOG_filename = 'phog_dev.json'
-    nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'
+class ConfigCurrent(ConfigLocationData1k_old):
+    pass

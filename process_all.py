@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     configProcessingSteps = ConfigProcessingSteps()
     # config = settings.ConfigDebug()
-    config = settings.ConfigLocationData10kDict()
+    config = settings.ConfigCurrent()
 
     start_time = time.time()
     print('Starting processing.')
