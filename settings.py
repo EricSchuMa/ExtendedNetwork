@@ -34,9 +34,11 @@ class Dirs(Enum):
     Default paths to directories, relative to project root.
     """
     JSON_AST: str = 'data/json_ast_data/'
+    JSON_PHOG: str = 'data/json_phog/'
     PICKLE_AST: str = 'data/pickle_data/'
     MODELS_TF: str = 'data/trained_models/'
     RESULT_LOGS: str = 'data/result_log/'
+    CACHE: str = 'data/cache/'
 
     # Old dir schema, data mixed with source code
     # pickle_ast: str = 'neural_code_completion/pickle_data/'
@@ -67,11 +69,11 @@ class ConfigDefaults():
     py_json_10k: str = 'python10k_dev.json'
 
     # Files used for creating models
-    # py_model_tf_phog_debug: str = '2020-01-08-PMN--0/PMN--0'
     _py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
-    _py_model_tf_10k_dict: str = '2020-01-28-PMN--2/PMN--2'
+    _py_model_tf_10k_dict: str = '2020-01-28-PMN--3/PMN--3'
 
     py_model_latest: str = _py_model_tf_10k_dict
+    # py_model_latest: str = _py_model_tf_phog_debug
 
 
 class ConfigMaxFromTestPreprocess(ConfigDefaults):
@@ -106,5 +108,13 @@ class ConfigLocationData(ConfigDefaults):
     """
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
-
     results_log_filename: str = 'results_log.csv'
+
+class ConfigLocationData10kDict(ConfigLocationData):
+
+    terminal_dict_filename: str = 'terminal_dict_10k_PY.pickle'
+    py_pickle_eval_terminal: str = 'PY_terminal_encoding_extended_10k_dict.pickle'
+    py_pickle_eval_nonterminal: str = 'PY_non_terminal_encoding_extended_10k_dict.pickle'
+    trainHOG_filename = 'phog_train.json'
+    testHOG_filename = 'phog_dev.json'
+    nodes_extra_info_filename: str = 'PY_node_extra_info_python50k_10k_dict.pickle'

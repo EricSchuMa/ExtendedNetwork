@@ -154,19 +154,23 @@ class ProcessorForNonTerminals(object):
             }
             pickle.dump(save, f, protocol=2)
 
-    def process_all_and_save(self, train_filename, test_filename, target_filename):
+    def process_all_and_save(self, train_filename, test_filename, target_filename, skip_train_data):
         import gc
         gc.disable()
-        print('Start procesing %s' % (train_filename))
-        train_data, train_parent_offsets, train_locations = self.process_file(train_filename)
-        gc.collect()
+        if not skip_train_data:
+            print('Start procesing %s' % (train_filename))
+            train_data, train_parent_offsets, train_locations = self.process_file(train_filename)
+            train_data = self.map_dense_id(train_data)
+            gc.collect()
+        else:
+            train_data, train_parent_offsets, train_locations = [], [], []
+
         print('Start procesing %s' % (test_filename))
         test_data, test_parent_offset, test_locations = self.process_file(test_filename)
+        test_data = self.map_dense_id(test_data)
         gc.collect()
 
         # todo: clean up the following; some args should become instance fields
-        train_data = self.map_dense_id(train_data)
-        test_data = self.map_dense_id(test_data)
         empty_set_dense, vocab_size = self.get_empty_set_dense()
 
         print('The N set that only has empty terminals: ', len(empty_set_dense), empty_set_dense)
@@ -182,7 +186,7 @@ class ProcessorForNonTerminals(object):
 
 
 
-def main(train_filename, test_filename, target_filename) -> None:
+def main(train_filename, test_filename, target_filename, skip_train_data) -> None:
     """
     Main routine for processing called by a centralized script
     :param train_filename:
@@ -191,7 +195,7 @@ def main(train_filename, test_filename, target_filename) -> None:
     """
     processor = ProcessorForNonTerminals()
     # processor.process_all_and_save(train_filename, test_filename, target_filename)
-    processor.process_all_and_save(train_filename, test_filename, target_filename)
+    processor.process_all_and_save(train_filename, test_filename, target_filename, skip_train_data)
 
 
 if __name__ == '__main__':

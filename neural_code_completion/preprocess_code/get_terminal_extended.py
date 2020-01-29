@@ -13,9 +13,9 @@ import time
 from neural_code_completion.preprocess_code.get_terminal_original import restore_terminal_dict
 #from preprocess_code.get_terminal_whole import restore_terminal_dict
 
-from utils import PredictionData, PredictionsContainer
+from neural_code_completion.preprocess_code.utils import PredictionData, PredictionsContainer
 
-
+MAX_AST_SIZE_TO_PROCESS = 3e4
 
 def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=False, is_train=False):
     """ creates the terminal corpus which for every node contains the value: either emptY if terminal is empty,
@@ -31,108 +31,110 @@ def process(filename, hog_filename, terminal_dict, unk_id, attn_size, verbose=Fa
     """
     with open(filename, encoding='latin-1') as lines:
         with open(hog_filename, encoding='latin-1') as lines_hog:
-            with open('fail.txt', 'a') as failout:
-                print('Start procesing %s !!!' % filename)
-                terminal_corpus = list()
-                attn_que = deque(maxlen=attn_size)
-                attn_success_total = 0
-                attn_fail_total = 0
-                hog_success_total = 0
-                hog_fail_total = 0
-                length_total = 0
-                hog = unk_id + 1
+            # with open('fail.txt', 'a') as failout:
+            print('Start procesing %s !!!' % filename)
+            terminal_corpus = list()
+            attn_que = deque(maxlen=attn_size)
+            attn_success_total = 0
+            attn_fail_total = 0
+            hog_success_total = 0
+            hog_fail_total = 0
+            length_total = 0
+            hog_id = unk_id + 1
 
-                node_facts_container = PredictionsContainer()
-                ast_index = -1
+            node_facts_container = PredictionsContainer()
+            ast_index = -1
 
-                for line, line_hog in zip(lines, lines_hog):
-                    ast_index += 1
-                    if ast_index % 1000 == 0:
-                        print('Processing ast/line:', ast_index)
-                    data = json.loads(line)
-                    data_hog = json.loads(line_hog)
-                    if len(data) < 3e4:
-                        terminal_line = list()
-                        attn_que.clear()  # have a new queue for each file
-                        attn_success_cnt = 0
-                        attn_fail_cnt = 0
-                        hog_success_cnt = 0
-                        hog_fail_cnt = 0
+            for line, line_hog in zip(lines, lines_hog):
+                ast_index += 1
+                if ast_index % 1000 == 0:
+                    print('Processing ast/line:', ast_index)
+                data = json.loads(line)
+                data_hog = json.loads(line_hog)
+                assert len(data) == len(data_hog), \
+                    "len(Non-phog json ast data) != len(phog json ast data) at ast_index = %d, non-phog line: %s" % (ast_index, line)
+                if len(data) < MAX_AST_SIZE_TO_PROCESS:
+                    terminal_line = list()
+                    attn_que.clear()  # have a new queue for each file
+                    attn_success_cnt = 0
+                    attn_fail_cnt = 0
+                    hog_success_cnt = 0
+                    hog_fail_cnt = 0
 
-                        for node_idx, (dic, dic_hog) in enumerate(zip(data, data_hog)):  # JS data[:-1] or PY data
+                    for node_idx, (dic, dic_hog) in enumerate(zip(data, data_hog)):  # JS data[:-1] or PY data
 
-                            node_truths = PredictionData()
-                            node_truths.has_terminal = 'value' in dic
-                            node_truths.ast_idx = ast_index
-                            node_truths.node_idx = node_idx
+                        node_truths = PredictionData()
+                        node_truths.has_terminal = 'value' in dic
+                        node_truths.ast_idx = ast_index
+                        node_truths.node_idx = node_idx
 
-                            if node_truths.has_terminal:
-                                dic_value = dic['value']
-                                node_truths.in_dict = dic_value in terminal_dict
-                                node_truths.in_attn_window = dic_value in attn_que
-                                node_truths.phog_ok = (dic_value == dic_hog["value"])
+                        if node_truths.has_terminal:
+                            dic_value = dic['value']
+                            node_truths.in_dict = dic_value in terminal_dict
+                            node_truths.in_attn_window = dic_value in attn_que
+                            node_truths.phog_ok = (dic_value == dic_hog["value"])
 
-                                if node_truths.in_dict:
-                                    handle_node_in_terminal_dict(attn_que, dic_value, terminal_dict, terminal_line)
-                                else:
-                                    if node_truths.in_attn_window:
-                                        handle_node_in_attn_que(attn_que, dic_value, terminal_line, unk_id)
-                                        attn_success_cnt += 1
-                                    else:
-                                        attn_fail_cnt += 1
-                                        # pointer network cannot predict, try phog now
-                                        if node_truths.phog_ok:
-                                            # obviously phog has predicted correctly (ask Max)
-                                            hog_success_cnt += 1
-                                            terminal_line.append(hog)
-                                        else:
-                                            # pointer cannot predict, phog failed
-                                            terminal_line.append(unk_id)
-                                            failout.write('Prediction %s, GroundTruth %s \n'
-                                                          % (dic_value, dic_hog["value"]))
-                                            hog_fail_cnt += 1
-                                    attn_que.append(dic_value)
+                            if node_truths.in_dict:
+                                handle_node_in_terminal_dict(attn_que, dic_value, terminal_dict, terminal_line)
                             else:
-                                terminal_line.append(terminal_dict['EmptY'])
-                                attn_que.append('EmptY')
-                            # end of inner loop over ast nodes
-                            if 'location' in dic:
-                                node_facts_container.add(dic['location'], node_truths)
+                                if node_truths.in_attn_window:
+                                    handle_node_in_attn_que(attn_que, dic_value, terminal_line, unk_id)
+                                    attn_success_cnt += 1
+                                else:
+                                    attn_fail_cnt += 1
+                                    # pointer network cannot predict, try phog now
+                                    if node_truths.phog_ok:
+                                        # obviously phog has predicted correctly (ask Max)
+                                        hog_success_cnt += 1
+                                        terminal_line.append(hog_id)
+                                    else:
+                                        # pointer cannot predict, phog failed
+                                        terminal_line.append(unk_id)
+                                        # failout.write('Prediction %s, GroundTruth %s \n' % (dic_value, dic_hog["value"]))
+                                        hog_fail_cnt += 1
+                                attn_que.append(dic_value)
+                        else:
+                            terminal_line.append(terminal_dict['EmptY'])
+                            attn_que.append('EmptY')
+                        # end of inner loop over ast nodes
+                        if 'location' in dic:
+                            node_facts_container.add(dic['location'], node_truths)
 
-                        attn_fail_total += attn_fail_cnt
-                        attn_total = attn_success_total + attn_fail_total
-                        hog_success_total += hog_success_cnt
-                        hog_fail_total += hog_fail_cnt
-                        length_total += len(data)
+                    attn_fail_total += attn_fail_cnt
+                    attn_total = attn_success_total + attn_fail_total
+                    hog_success_total += hog_success_cnt
+                    hog_fail_total += hog_fail_cnt
+                    length_total += len(data)
+                    terminal_corpus.append(terminal_line)
 
-                        if verbose and ast_index % 1000 == 0:
-                            print('\nUntil line %d: attn_success_total: %d, attn_fail_total: %d, success/attn_total: %.4f,'
-                                  ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
-                                  (ast_index, attn_success_total, attn_fail_total,
-                                   float(attn_success_total)/attn_total, length_total,
-                                   float(attn_success_total)/length_total,
-                                   float(attn_total)/length_total))
-                # write_output_file(attn_fail_total, attn_success_total, attn_total, hog_fail_total, hog_success_total,
-                #                  length_total)
+                    if verbose and ast_index % 1000 == 0:
+                        print('\nUntil line %d: attn_success_total: %d, attn_fail_total: %d, success/attn_total: %.4f,'
+                              ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
+                              (ast_index, attn_success_total, attn_fail_total,
+                               float(attn_success_total) / attn_total, length_total,
+                               float(attn_success_total) / length_total,
+                               float(attn_total) / length_total))
+            # write_output_file(attn_fail_total, attn_success_total, attn_total, hog_fail_total, hog_success_total,
+            #                  length_total)
             return terminal_corpus, node_facts_container
 
 
-def write_output_file(attn_fail_total, attn_success_total, attn_total, hog_fail_total, hog_success_total, length_total):
-    with open('output.txt', 'a') as fout:
-        fout.write('New Experiment: terminal dict = %s, hog files are %s , %s \n' %
-                   (terminal_dict_filename, trainHOG_filename, testHOG_filename))
-        fout.write('Statistics: attn_success_total: %d, attn_fail_total: %d, success/fail: %.4f,'
-                   ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
-                   (attn_success_total, attn_fail_total,
-                    float(attn_success_total) / attn_fail_total, length_total,
-                    float(attn_success_total) / length_total,
-                    float(attn_total) / length_total))
-        fout.write('\n Statistics: hog_success_total: %d, hog_fail_total: %d, success/fail: %.4f,'
-                   ' length_total: %d, hog_success percentage: %.4f, total unk percentage: %.4f\n \n' %
-                   (hog_success_total, hog_fail_total,
-                    float(hog_success_total) / hog_fail_total, length_total,
-                    float(hog_success_total) / length_total,
-                    float(attn_total) / length_total))
+# def write_output_file(attn_fail_total, attn_success_total, attn_total, hog_fail_total, hog_success_total, length_total):
+#     with open('output.txt', 'a') as fout:
+#         fout.write('New Experiment: terminal dict = %s, hog files are %s , %s \n' %
+#                    (terminal_dict_filename, trainHOG_filename, testHOG_filename))
+#         fout.write('Statistics: attn_success_total: %d, attn_fail_total: %d, success/fail: %.4f,'
+#                    ' length_total: %d, attn_success percentage: %.4f, total unk percentage: %.4f\n' %
+#                    (attn_success_total, attn_fail_total,
+#                     float(attn_success_total) / attn_fail_total, length_total,
+#                     float(attn_success_total) / length_total,
+#                     float(attn_total) / length_total))
+#         fout.write('\n Statistics: hog_success_total: %d, hog_fail_total: %d, success/fail: %.4f,'
+#                    ' length_total: %d, hog_success percentage: %.4f, total unk percentage: %.4f\n \n' %
+#                    (hog_success_total, hog_fail_total,
+#                     float(hog_success_total) / hog_fail_total, length_total,
+#                     float(hog_success_total) / length_total,
+#                     float(attn_total) / length_total))
 
 
 def handle_node_in_attn_que(attn_que, dic_value, terminal_line, unk_id):
@@ -161,43 +163,38 @@ def save(filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData
         pickle.dump(save, f, protocol=2)
 
 
-def main(terminal_dict_filename, train_filename, trainHOG_filename, test_filename, target_filename,
-         filename_node_facts, skip_train_data):
+def main(fnames: dict, skip_train_data: bool):
     import gc
     gc.disable()
     start_time = time.time()
     attn_size = 50
-    terminal_dict, terminal_num, vocab_size = restore_terminal_dict(terminal_dict_filename)
-    if skip_train_data:
-        # target_filename_debug = '../pickle_data/PY_terminal_1k_extended_all_predictions.pickle'
-        testData, node_facts_container = process(test_filename, testHOG_filename, terminal_dict, vocab_size,
-                                                 attn_size=attn_size,
-                                                 verbose=False, is_train=False)
-        save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, testData, testData)
-    else:
-        trainData, _ = process(train_filename, trainHOG_filename, terminal_dict, vocab_size, attn_size=attn_size,
+    terminal_dict, terminal_num, vocab_size = restore_terminal_dict(fnames['terminal_dict'])
+
+    trainData = list()
+    if not skip_train_data:
+        trainData, _ = process(fnames['train_json_ast'], fnames['train_json_PHOG'],
+                               terminal_dict, vocab_size, attn_size=attn_size,
                                verbose=False, is_train=True)
-        testData, node_facts_container = process(test_filename, testHOG_filename, terminal_dict, vocab_size,
-                                                 attn_size=attn_size,
-                                                 verbose=False, is_train=False)
-        save(target_filename, terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
 
+    testData, nodes_extra_info = process(fnames['test_json_ast'], fnames['test_json_PHOG'],
+                                             terminal_dict, vocab_size, attn_size=attn_size,
+                                             verbose=False, is_train=False)
 
-    node_facts_container.to_pickle(filename_node_facts)
+    save(fnames['target_terminal_pickle'], terminal_dict, terminal_num, vocab_size, attn_size, trainData, testData)
+    nodes_extra_info.to_pickle(fnames['nodes_extra_info'])
     print('Finishing generating terminals and takes %.2f' % (time.time() - start_time))
 
 
 if __name__ == '__main__':
-    from utils import default_filename_node_facts
+    fnames = dict()
+    fnames['train_json_PHOG'] = '../../data/phog-json/phog_train.json'
+    fnames['test_json_PHOG'] = '../../data/phog-json/phog_dev.json'
 
-    terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
-    train_filename = '../../data/python90k_train.json'
-    trainHOG_filename = '../../data/phog-json/phog_train.json'
-    test_filename = '../../data/python10k_dev.json'
-    testHOG_filename = '../../data/phog-json/phog_dev.json'
-    target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
-    filename_node_facts = '../pickle_data/' + default_filename_node_facts
+    fnames['terminal_dict'] = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
+    fnames['train_json_ast'] = '../../data/python90k_train.json'
+    fnames['test_json_ast'] = '../../data/python10k_dev.json'
+    fnames['target_terminal_pickle'] = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
+    fnames['nodes_extra_info'] = '../cache/PY_node_extra_info_python50k_10k_dict.pickle'
 
     SKIP_TRAIN_DATA = True
-    main(terminal_dict_filename, train_filename, trainHOG_filename, test_filename, testHOG_filename, target_filename,
-         filename_node_facts, skip_train_data=SKIP_TRAIN_DATA)
+    main(fnames, skip_train_data=SKIP_TRAIN_DATA)

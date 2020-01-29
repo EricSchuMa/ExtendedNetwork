@@ -4,7 +4,7 @@
 
 # Artur Andrzejak, Jan 2020
 
-def do_preprocessing(cache_dir, result_log_dir, result_file_name):
+def merge_location_with_node_extra_info_and_save(cache_dir, result_log_dir, result_file_name):
     import pandas as pd
     import numpy as np
     #%% Load data
@@ -12,7 +12,7 @@ def do_preprocessing(cache_dir, result_log_dir, result_file_name):
 
 
     from neural_code_completion.preprocess_code.utils import \
-        PredictionsContainer, PredictionData, default_filename_node_facts, from_pickle
+        PredictionsContainer, PredictionData, from_pickle
 
     # node_facts = PredictionsContainer(filename_node_facts)
     filename_node_facts = "neural_code_completion/pickle_data/" + default_filename_node_facts
@@ -42,7 +42,7 @@ def do_preprocessing(cache_dir, result_log_dir, result_file_name):
 def main(cache_dir, result_log_dir, result_file_name, preprocess=False):
 
     if preprocess:
-        do_preprocessing(cache_dir, result_log_dir, result_file_name)
+        merge_location_with_node_extra_info_and_save(cache_dir, result_log_dir, result_file_name)
 
     ######################################
     # %% Reload cached df

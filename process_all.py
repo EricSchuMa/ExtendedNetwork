@@ -26,33 +26,29 @@ def run_create_json(config):
 def run_create_pickle_terminal(config):
     import neural_code_completion.preprocess_code.get_terminal_extended as processor
 
-    # todo: update the following file definitions
-    terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
-    train_filename = '../../data/python90k_train.json'
-    trainHOG_filename = '../../data/phog-json/phog_train.json'
-    test_filename = '../../data/python10k_dev.json'
-    testHOG_filename = '../../data/phog-json/phog_dev.json'
-    target_filename = '../pickle_data/PY_terminal_1k_extended_dev.pickle'
-    from utils import default_filename_node_facts
-    filename_node_facts = '../pickle_data/' + default_filename_node_facts
+    fnames = dict()
+    fnames['terminal_dict'] = fullpath(Dirs.PICKLE_AST, config.terminal_dict_filename)
+    fnames['target_terminal_pickle'] = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_terminal)
+    fnames['nodes_extra_info'] = fullpath(Dirs.PICKLE_AST, config.nodes_extra_info_filename)
 
+    fnames['train_json_ast'] = fullpath(Dirs.JSON_AST, config.py_json_100k)
+    fnames['train_json_PHOG'] = fullpath(Dirs.JSON_PHOG, config.trainHOG_filename)
 
-    train_filename = config.dir_json_data + config.py_json_90k
-    test_filename = config.dir_json_data + config.py_json_10k
-    target_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
+    fnames['test_json_ast'] = fullpath(Dirs.JSON_AST, config.py_json_10k)
+    fnames['test_json_PHOG'] = fullpath(Dirs.JSON_PHOG, config.testHOG_filename)
 
     SKIP_TRAIN_DATA = True
-    processor.main(terminal_dict_filename, train_filename, trainHOG_filename, test_filename,
-                   testHOG_filename, target_filename, filename_node_facts, skip_train_data=SKIP_TRAIN_DATA)
+    processor.main(fnames, skip_train_data=SKIP_TRAIN_DATA)
 
 
 def run_create_pickle_non_terminal(config):
     import neural_code_completion.preprocess_code.get_non_terminal_with_location as processor
     train_filename = fullpath(Dirs.JSON_AST, config.py_json_100k)
-    test_filename = fullpath(Dirs.JSON_AST, config.py_json_50k)
+    test_filename = fullpath(Dirs.JSON_AST, config.py_json_10k)
     target_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_nonterminal)
 
-    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename)
+    SKIP_TRAIN_DATA = True
+    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename, skip_train_data=SKIP_TRAIN_DATA)
 
 
 def run_create_models(config):
@@ -62,10 +58,10 @@ def run_create_models(config):
 def run_evaluation(config):
     import Evaluation.evaluation_with_loc as evaluation_processor
     # py_pickle_eval_nonterminal_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
-    py_pickle_eval_nonterminal_filename = fullpath(Dirs.PICKLE_AST,  config.py_pickle_eval_nonterminal)
-    py_pickle_eval_terminal_filename = config.dir_pickle + config.py_pickle_eval_terminal
+    py_pickle_eval_nonterminal_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_nonterminal)
+    py_pickle_eval_terminal_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_terminal)
     py_model_tf_filename = fullpath(Dirs.MODELS_TF, config.py_model_latest)
-    result_log_filename = config.dir_result_logs + config.results_log_filename
+    result_log_filename = fullpath(Dirs.RESULT_LOGS, config.results_log_filename)
 
     evaluation_processor.main(py_pickle_eval_nonterminal_filename, py_pickle_eval_terminal_filename,
                               py_model_tf_filename, result_log_filename)
@@ -73,8 +69,8 @@ def run_evaluation(config):
 
 def run_eval_log_analysis(config):
     import Evaluation.result_log_analysis as eval_log_analyzer
-    py_pickle_eval_nonterminal_filename = config.dir_pickle + config.py_pickle_eval_nonterminal
-    py_pickle_eval_terminal_filename = config.dir_pickle + config.py_pickle_eval_terminal
+    py_pickle_eval_nonterminal_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_nonterminal)
+    py_pickle_eval_terminal_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_terminal)
     py_model_tf_filename = config.dir_models + config.py_model_tf_phog_debug
     result_log_filename = config.dir_result_logs + config.results_log_filename
 
@@ -91,9 +87,14 @@ def run_all(configProcessingSteps, config):
         print("Executing run_create_json ...")
         run_create_json(config)
 
-    if configProcessingSteps.create_pickle:
-        print("Executing run_create_pickle ...")
-        run_create_pickle(config)
+    if configProcessingSteps.create_pickle_non_terminal:
+        print("Executing run_create_pickle_non_terminal ...")
+        run_create_pickle_non_terminal(config)
+
+    if configProcessingSteps.create_pickle_terminal:
+        print("Executing run_create_pickle_terminal ...")
+        run_create_pickle_terminal(config)
+
 
     if configProcessingSteps.create_models:
         print("Executing run_create_models ...")
@@ -113,7 +114,7 @@ if __name__ == '__main__':
 
     configProcessingSteps = ConfigProcessingSteps()
     # config = settings.ConfigDebug()
-    config = settings.ConfigLocationData()
+    config = settings.ConfigLocationData10kDict()
 
     start_time = time.time()
     print('Starting processing.')
