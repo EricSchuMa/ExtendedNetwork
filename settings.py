@@ -27,8 +27,6 @@ def include_all_project_paths():
 include_all_project_paths()
 
 
-
-
 class Dirs(Enum):
     """
     Default paths to directories, relative to project root.
@@ -68,7 +66,9 @@ class ConfigDefaults():
     py_json_90k: str = 'python90k_train.json'
     py_json_10k: str = 'python10k_dev.json'
 
-
+    # These are "public" settings
+    py_json_train: str = py_json_50k
+    py_json_test: str = py_json_10k
 
 
 class ConfigMaxFromTestPreprocess(ConfigDefaults):
@@ -112,15 +112,19 @@ class ConfigLocationData10kDict(ConfigLocationData):
     _py_model_tf_10k_dict_snap2: str = '2020-01-28-PMN--2/PMN--2'
     _py_model_tf_10k_dict: str = '2020-01-28-PMN--3/PMN--3'
     #py_model_latest: str = _py_model_tf_10k_dict_snap2
-    #py_model_latest: str = _py_model_tf_10k_dict
-    py_model_latest: str = _py_model_tf_phog_debug
+    py_model_latest: str = _py_model_tf_10k_dict
+    #py_model_latest: str = _py_model_tf_phog_debug
 
-    # terminal_dict_filename: str = 'terminal_dict_10k_PY_train_dev.pickle'
+    terminal_dict_filename: str = 'terminal_dict_10k_PY_train_dev.pickle'
     # terminal_dict_filename: str = 'terminal_dict_10k_PY.pickle'
-    terminal_dict_filename: str = 'terminal_dict_1k_PY_train_dev.pickle'
+    # terminal_dict_filename: str = 'terminal_dict_1k_PY_train_dev.pickle'
 
     # py_pickle_eval_terminal: str = 'PY_terminal_encoding_extended_10k_dict.pickle'
+    py_pickle_eval_terminal: str = 'PY_terminal_10k_extended.pickle'
+    py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     #py_pickle_eval_nonterminal: str = 'PY_non_terminal_encoding_extended_10k_dict.pickle'
+    #py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_50k_ast.pickle'
+
     trainHOG_filename = 'phog_train.json'
     testHOG_filename = 'phog_dev.json'
     nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'

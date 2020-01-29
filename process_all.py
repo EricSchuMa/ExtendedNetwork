@@ -31,10 +31,10 @@ def run_create_pickle_terminal(config):
     fnames['target_terminal_pickle'] = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_terminal)
     fnames['nodes_extra_info'] = fullpath(Dirs.PICKLE_AST, config.nodes_extra_info_filename)
 
-    fnames['train_json_ast'] = fullpath(Dirs.JSON_AST, config.py_json_100k)
+    fnames['train_json_ast'] = fullpath(Dirs.JSON_AST, config.py_json_train)
     fnames['train_json_PHOG'] = fullpath(Dirs.JSON_PHOG, config.trainHOG_filename)
 
-    fnames['test_json_ast'] = fullpath(Dirs.JSON_AST, config.py_json_10k)
+    fnames['test_json_ast'] = fullpath(Dirs.JSON_AST, config.py_json_test)
     fnames['test_json_PHOG'] = fullpath(Dirs.JSON_PHOG, config.testHOG_filename)
 
     SKIP_TRAIN_DATA = True
@@ -43,12 +43,13 @@ def run_create_pickle_terminal(config):
 
 def run_create_pickle_non_terminal(config):
     import neural_code_completion.preprocess_code.get_non_terminal_with_location as processor
-    train_filename = fullpath(Dirs.JSON_AST, config.py_json_100k)
-    test_filename = fullpath(Dirs.JSON_AST, config.py_json_10k)
+    train_filename = fullpath(Dirs.JSON_AST, config.py_json_train)
+    test_filename = fullpath(Dirs.JSON_AST, config.py_json_test)
     target_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_nonterminal)
 
-    SKIP_TRAIN_DATA = False
-    processor.main(train_filename=train_filename, test_filename=test_filename, target_filename=target_filename, skip_train_data=SKIP_TRAIN_DATA)
+    SKIP_TRAIN_DATA = True
+    processor.main(train_filename=train_filename, test_filename=test_filename,
+                   target_filename=target_filename, skip_train_data=SKIP_TRAIN_DATA)
 
 
 def run_create_models(config):
