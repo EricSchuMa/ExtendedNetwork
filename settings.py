@@ -68,13 +68,7 @@ class ConfigDefaults():
     py_json_90k: str = 'python90k_train.json'
     py_json_10k: str = 'python10k_dev.json'
 
-    # Files used for creating models
-    _py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
-    _py_model_tf_10k_dict: str = '2020-01-28-PMN--3/PMN--3'
-    _py_model_tf_10k_dict_snap2: str = '2020-01-28-PMN--2/PMN--2'
 
-    py_model_latest: str = _py_model_tf_10k_dict_snap2
-    # py_model_latest: str = _py_model_tf_phog_debug
 
 
 class ConfigMaxFromTestPreprocess(ConfigDefaults):
@@ -113,8 +107,17 @@ class ConfigLocationData(ConfigDefaults):
 
 
 class ConfigLocationData10kDict(ConfigLocationData):
+    # Files used for creating models
+    _py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
+    _py_model_tf_10k_dict_snap2: str = '2020-01-28-PMN--2/PMN--2'
+    _py_model_tf_10k_dict: str = '2020-01-28-PMN--3/PMN--3'
+    py_model_latest: str = _py_model_tf_10k_dict_snap2
+    #py_model_latest: str = _py_model_tf_10k_dict
+    #py_model_latest: str = _py_model_tf_phog_debug
+
     terminal_dict_filename: str = 'terminal_dict_10k_PY_train_dev.pickle'
-    #    terminal_dict_filename: str = 'terminal_dict_1k_PY.pickle'
+    # terminal_dict_filename: str = 'terminal_dict_10k_PY.pickle'
+    # terminal_dict_filename: str = 'terminal_dict_1k_PY_train_dev.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_encoding_extended_10k_dict.pickle'
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_encoding_extended_10k_dict.pickle'
     trainHOG_filename = 'phog_train.json'
