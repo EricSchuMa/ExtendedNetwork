@@ -11,9 +11,9 @@ class ConfigProcessingSteps:
     """
     create_json: bool = False
     create_pickle_terminal: bool = False
-    create_pickle_non_terminal: bool = False
+    create_pickle_non_terminal: bool = True
     create_models: bool = False
-    run_evaluation: bool = True
+    run_evaluation: bool = False
     run_eval_log_analysis: bool = False
 
 
@@ -47,7 +47,7 @@ def run_create_pickle_non_terminal(config):
     test_filename = fullpath(Dirs.JSON_AST, config.py_json_test)
     target_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_nonterminal)
 
-    SKIP_TRAIN_DATA = True
+    SKIP_TRAIN_DATA = False
     processor.main(train_filename=train_filename, test_filename=test_filename,
                    target_filename=target_filename, skip_train_data=SKIP_TRAIN_DATA)
 
