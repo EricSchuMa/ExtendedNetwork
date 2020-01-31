@@ -362,7 +362,7 @@ def rearrange_input_data_numpy(eval_config, test_data, location_data):
         long_line = np.concatenate([np.array(inner_elem, dtype=np.int32) for inner_elem in padded_data])
         return long_line
 
-    def rearrange_slices(long_vec, slice_size,  slices_per_batch, y_offset):
+    def rearrange_slices(long_vec, slice_size, slices_per_batch, y_offset):
         """
         Given a long vector long_vec:
         * starting at y_offset, split it into slices s of size slice_size:
@@ -416,10 +416,10 @@ def rearrange_input_data_numpy(eval_config, test_data, location_data):
     # Observed values: data_len = 6502400, batch_len = 50800, batch_size = 128, epoch_size = 1015, num_steps = 50
 
     test_data_transformed = rearrange_slices(test_data_longvec, slice_size=num_steps,
-                                             slices_per_batch= eval_config.batch_size, y_offset=1)
+                                             slices_per_batch=eval_config.batch_size, y_offset=1)
 
     location_data_transformed = rearrange_slices(location_data_longvec, slice_size=width_location_data,
-                                             slices_per_batch= eval_config.batch_size,
+                                             slices_per_batch=eval_config.batch_size,
                                                  y_offset=1*LOCATION_ENTRIES_PER_INPUT_ENCODING)
 
     return test_data_transformed, location_data_transformed

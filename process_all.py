@@ -11,9 +11,9 @@ class ConfigProcessingSteps:
     """
     create_json: bool = False
     create_pickle_terminal: bool = False
-    create_pickle_non_terminal: bool = True
+    create_pickle_non_terminal: bool = False
     create_models: bool = False
-    run_evaluation: bool = False
+    run_evaluation: bool = True
     run_eval_log_analysis: bool = False
 
 
