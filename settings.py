@@ -135,7 +135,7 @@ class ConfigLocationData1k_old(ConfigLocationData):
 class ConfigLocationData10kDict(ConfigLocationData):
     # Files used for creating models
     _py_model_tf_phog_debug: str = '2020-01-08-PMN--7/PMN--7'
-    _py_model_tf_10k_dict: str = '2020-01-28-PMN--4/PMN--4'
+    _py_model_tf_10k_dict: str = '2020-01-28-PMN--7/PMN--7'
     py_model_latest: str = _py_model_tf_10k_dict
 
     terminal_dict_filename: str = 'terminal_dict_10k_PY_train_dev.pickle'
