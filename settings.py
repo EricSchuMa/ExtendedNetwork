@@ -112,6 +112,8 @@ class ConfigLocationData(ConfigDefaults):
 
     nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'
 
+    merged_data_filename: str = 'merged_df.data'
+
 
 class ConfigLocationData1k_old(ConfigLocationData):
     # Files used for creating models
