@@ -19,7 +19,7 @@ def merge_location_with_node_extra_info_and_save(merged_data_filename, result_lo
 
     #%%
     data_raw = pd.read_csv(result_log_filename)
-
+    print(data_raw['file_id'].max())
 
     #%% # convert node_facts_dict to df
     cols = ['file_id', 'src_line', 'ast_node_idx', 'has_terminal', 'in_dict',
@@ -39,7 +39,7 @@ def merge_location_with_node_extra_info_and_save(merged_data_filename, result_lo
 
 
 def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
-         terminal_dict, analyzed_result_log, preprocess=False):
+         terminal_dict, analyzed_result_log, preprocess=True):
 
     if preprocess:
         merge_location_with_node_extra_info_and_save(merged_data_filename, result_log_filename,

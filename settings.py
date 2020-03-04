@@ -114,7 +114,7 @@ class ConfigLocationData(ConfigDefaults):
 
     nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'
 
-    merged_data_filename: str = 'merged_df.data'
+    merged_data_filename: str = 'merged_df_new.data'
 
     analyzed_result_log: str = 'analyzed_result_log.txt'
 
