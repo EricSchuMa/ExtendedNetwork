@@ -13,8 +13,8 @@ class ConfigProcessingSteps:
     create_pickle_terminal: bool = False
     create_pickle_non_terminal: bool = False
     create_models: bool = False
-    run_evaluation: bool = True
-    run_eval_log_analysis: bool = False
+    run_evaluation: bool = False
+    run_eval_log_analysis: bool = True
 
 
 # %%
@@ -69,18 +69,20 @@ def run_evaluation(config):
 
 
 def run_eval_log_analysis(config):
-    import Evaluation.result_log_analysis as eval_log_analyzer
+    import Evaluation.result_log_analysis_refactored as eval_log_analyzer
     # py_pickle_eval_nonterminal_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_nonterminal)
     # py_pickle_eval_terminal_filename = fullpath(Dirs.PICKLE_AST, config.py_pickle_eval_terminal)
     # py_model_tf_filename = config.dir_models + config.py_model_tf_phog_debug
     # result_log_filename = config.dir_result_logs + config.results_log_filename
 
-    merged_data_filename = fullpath(Dirs.CACHE, config.merged_data_filename)
+    merged_data_filename = fullpath(Dirs.CACHE_MAR, config.merged_data_filename)
     result_log_filename = fullpath(Dirs.RESULT_LOGS, config.results_log_filename)
     nodes_extra_info_filename = fullpath(Dirs.PICKLE_AST, config.nodes_extra_info_filename)
     terminal_dict = fullpath(Dirs.PICKLE_AST, config.terminal_dict_filename)
+    analyzed_result_log = fullpath(Dirs.ANALYZED_RESULT_LOG, config.analyzed_result_log)
 
-    eval_log_analyzer.main(merged_data_filename, result_log_filename, nodes_extra_info_filename, terminal_dict)
+    eval_log_analyzer.main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
+                           terminal_dict, analyzed_result_log)
 
 
 ### Overall execution

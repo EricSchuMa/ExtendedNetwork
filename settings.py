@@ -13,8 +13,8 @@ def include_all_project_paths():
     # Check that the project root is current working dir
     project_root: Path = Path.cwd()
     last_path_segment = project_root.name
-    assert last_path_segment == "ExtendedNetworkMax", "Script's working dir is not project root but: %s" % (
-        project_root)
+    assert (last_path_segment == "ExtendedNetworkMax") | (last_path_segment == "ExtendedNetwork"), \
+        "Script's working dir is not project root but: %s" % (project_root)
     # print('Executing script in %s' % (project_root))
     # print('Python %s on %s' % (sys.version, sys.platform))
 
@@ -37,6 +37,8 @@ class Dirs(Enum):
     MODELS_TF: str = 'data/trained_models/'
     RESULT_LOGS: str = 'data/result_log/'
     CACHE: str = 'data/cache/'
+    CACHE_MAR: str = 'data/cache_mar/'
+    ANALYZED_RESULT_LOG: str = 'data/analyzed_result_log/'
 
     # Old dir schema, data mixed with source code
     # pickle_ast: str = 'neural_code_completion/pickle_data/'
@@ -113,6 +115,8 @@ class ConfigLocationData(ConfigDefaults):
     nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'
 
     merged_data_filename: str = 'merged_df.data'
+
+    analyzed_result_log: str = 'analyzed_result_log.txt'
 
 
 class ConfigLocationData1k_old(ConfigLocationData):
