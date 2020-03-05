@@ -110,13 +110,13 @@ class ConfigLocationData(ConfigDefaults):
     """
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     py_pickle_eval_terminal: str = 'PY_terminal_1k_extended_dev.pickle'
-    results_log_filename: str = 'results_log.csv'
+    results_log_filename: str = 'results_log_Mar_5.csv'
 
-    nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict.pickle'
+    nodes_extra_info_filename: str = 'PY_node_extra_info_python_10k_dict_Mar_5.pickle'
 
-    merged_data_filename: str = 'merged_df_new.data'
+    merged_data_filename: str = 'merged_df_Mar_5.data'
 
-    analyzed_result_log: str = 'analyzed_result_log.txt'
+    analyzed_result_log: str = 'analyzed_result_log_Mar_5_1528.txt'
 
 
 class ConfigLocationData1k_old(ConfigLocationData):
@@ -149,7 +149,7 @@ class ConfigLocationData10kDict(ConfigLocationData):
     # terminal_dict_filename: str = 'terminal_dict_1k_PY_train_dev.pickle'
 
     # py_pickle_eval_terminal: str = 'PY_terminal_encoding_extended_10k_dict.pickle'
-    py_pickle_eval_terminal: str = 'PY_terminal_10k_extended.pickle'
+    py_pickle_eval_terminal: str = 'PY_terminal_10k_extended_Mar_5.pickle'
     py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location.pickle'
     #py_pickle_eval_nonterminal: str = 'PY_non_terminal_encoding_extended_10k_dict.pickle'
     #py_pickle_eval_nonterminal: str = 'PY_non_terminal_with_location_50k_ast.pickle'
