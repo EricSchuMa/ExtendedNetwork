@@ -27,6 +27,20 @@ def include_all_project_paths():
 include_all_project_paths()
 
 
+class Stats:
+    rnn_able_to_predict = 'p05_rnn_could'
+    attn_able_to_predict = 'p06_attn_could'
+    phog_able_to_predict = 'p07_phog_could'
+
+    used_rnn_as_predictor = 'p100rnn_share_rnn_preds'
+    used_attn_as_predictor = 'p100att_share_attn_preds'
+    used_phog_as_predictor = 'p100hog_share_phog_preds'
+
+    used_rnn_and_correct = 'p20rnn_rnn_ok'
+    used_attn_and_correct = 'p20att_attn_ok'
+    used_phog_and_correct = 'p20hog_phog_ok'
+
+
 class Dirs(Enum):
     """
     Default paths to directories, relative to project root.
