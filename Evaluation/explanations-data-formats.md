@@ -10,7 +10,7 @@ Artur Andrzejak, Tuyen Le (Jan 2020)
 + tdict_end_idx = terminal_dict_size - 1
 + attn_window_size: 50
 + attn_start_idx = terminal_dict_size + 3
-+ attn_end_idx = attn_start_idx + attn_window_size + 1
++ attn_end_idx = attn_start_idx + attn_window_size
 + unk_id = terminal_dict_size
 
 
