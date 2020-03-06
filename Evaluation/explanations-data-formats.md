@@ -3,37 +3,35 @@ Explanations of the result formats and encodings used in the project.
 
 Artur Andrzejak, Tuyen Le (Jan 2020)
 
+#Encoded numbers
++ terminal_dict_size: 1k, 10k or 50k
++ idx_EmptY = 0 (for nodes without terminal values)
++ tdict_start_idx = 1
++ tdict_end_idx = terminal_dict_size - 1
++ attn_window_size: 50
++ attn_start_idx = terminal_dict_size + 3
++ attn_end_idx = attn_start_idx + attn_window_size + 1
++ unk_id = terminal_dict_size
+
 
 #For prediction_viewer
 #####Meaning of inserts in source files representing prediction results for the next token.
 
 New encoding (**dph**) | Old encoding | Meaning
 ---| --- | ---
-`+..` | S | the prediction is true and the truth value is in [1..999]
-`-+.` | A | the prediction is true and the truth value >= 1003
+`+..` | S | the prediction is true and the truth value is in [tdict_start_idx..tdict_end_idx]
+`-+.` | A | the prediction is true and the truth value >= attn_start_idx
 `--+` | H-truth value | the prediction is HOG
-`*--` | F-prediction value-truth value | the prediction is false and the truth value is in [1..999]
-`-*-` | G-prediction value-truth value | the prediction is false and the truth value >= 1003
+`*--` | F-prediction value-truth value | the prediction is false and the truth value is in [tdict_start_idx..tdict_end_idx]
+`-*-` | G-prediction value-truth value | the prediction is false and the truth value >= attn_start_idx
 `---` | U-prediction value-truth value | the prediction is false and the truth value is unk_id
 `???` | HU | the prediction is HOG and the truth value is unk_id
-not occur | UNK | unkown id. However, there is no UNK in the prediction values
+not occur | UNK | unknown id. However, there is no UNK in the prediction values
 not occur | AU | the prediction is true and the truth value is unk_id
 
-<!---
-+ "H-truth value": the prediction is HOG.
-+ "S": the prediction is true and the truth value is in [0..999]
-+ "AU":  the prediction is true and the truth value is unk_id 
-+ "A": the prediction is true and the truth value >= 1001
-
-+ "F-prediction value-truth value": the prediction is false and the truth value is in [0..999]
-+ "G-prediction value-truth value": the prediction is false and the truth value >= 1001
-+ "U-prediction value-truth value": the prediction is false and the truth value is unk_id
-
-+ "HU": the prediction is HOG and the truth value is unk_id
-+ "UNK": unkown id. However, there is no UNK in the prediction values. I checked the CSV file again.--->
 
 #### Further notes
-Tuen, 20-01-2020, [email](https://mail.google.com/mail/u/0/?tab=wm#inbox/KtbxLvHcLqJnHqznMZSDHsTVrxWsqtbQBB)
+Tuyen, 20-01-2020, [email](https://mail.google.com/mail/u/0/?tab=wm#inbox/KtbxLvHcLqJnHqznMZSDHsTVrxWsqtbQBB)
 
 I have modified the prediction_viewer.py as below. please note that,
 if the prediction / truth value is in [0..999], the value will be the
