@@ -73,7 +73,7 @@ def calculate_used_as_predictor_ratio(data, enumbers):
 
     used_rnn_as_predictor = data.prediction.isin(rnn_range)
     used_attn_as_predictor = data.prediction.isin(attn_range)
-    used_phog_as_predictor = data.prediction == enumbers.get_hog_id
+    used_phog_as_predictor = data.prediction == enumbers.get_hog_id()
 
     result[Stats.used_rnn_as_predictor] = (data[used_rnn_as_predictor]).shape[0] / nrows
     result[Stats.used_attn_as_predictor] = (data[used_attn_as_predictor]).shape[0] / nrows
@@ -90,7 +90,7 @@ def calculate_used_and_correct_ratio(data, enumbers):
 
     used_rnn_and_correct = data.prediction.isin(rnn_range) & data.is_ok == 1
     used_attn_and_correct = data.prediction.isin(attn_range) & data.is_ok == 1
-    used_phog_and_correct = (data.prediction == enumbers.get_hog_id) & (data.is_ok == 1)
+    used_phog_and_correct = (data.prediction == enumbers.get_hog_id()) & (data.is_ok == 1)
 
     result[Stats.used_rnn_and_correct] = (data[used_rnn_and_correct]).shape[0] / nrows
     result[Stats.used_attn_and_correct] = (data[used_attn_and_correct]).shape[0] / nrows
