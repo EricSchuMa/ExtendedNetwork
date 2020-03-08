@@ -41,13 +41,10 @@ def add_is_ok_column(row, hog_id):
     return is_ok
 
 
-def compare_accuracy(data, enumbers, analyzed_result_log):
+def calculate_able_to_predict_ratio(data):
     result = dict()
     nrows = data.shape[0]
-    # result['d10_term_to_all'] = nrows / original_nrows
-    # result['abs10_count_terminals'] = nrows
 
-    # Able to predict
     rnn_able_to_predict = (data.in_dict == 1) | (data.truth == 0)
     attn_able_to_predict = data.in_attn_window == 1
     phog_able_to_predict = data.phog_ok == 1
@@ -56,11 +53,23 @@ def compare_accuracy(data, enumbers, analyzed_result_log):
     result[Stats.attn_able_to_predict] = (data[attn_able_to_predict]).shape[0] / nrows
     result[Stats.phog_able_to_predict] = (data[phog_able_to_predict]).shape[0] / nrows
 
-    # Used as a predictor
+    return result
+
+
+def get_rnn_attn_range(enumbers):
     attn_start_idx = enumbers.get_attn_start_idx()
     attn_end_idx = enumbers.get_attn_end_idx()
     rnn_range = range(0, enumbers.terminal_dict_size)
     attn_range = range(attn_start_idx, attn_end_idx + 1)
+
+    return rnn_range, attn_range
+
+
+def calculate_used_as_predictor_ratio(data, enumbers):
+    result = dict()
+    nrows = data.shape[0]
+
+    rnn_range, attn_range = get_rnn_attn_range(enumbers)
 
     used_rnn_as_predictor = data.prediction.isin(rnn_range)
     used_attn_as_predictor = data.prediction.isin(attn_range)
@@ -70,7 +79,15 @@ def compare_accuracy(data, enumbers, analyzed_result_log):
     result[Stats.used_attn_as_predictor] = (data[used_attn_as_predictor]).shape[0] / nrows
     result[Stats.used_phog_as_predictor] = (data[used_phog_as_predictor]).shape[0] / nrows
 
-    # Used and correct
+    return result
+
+
+def calculate_used_and_correct_ratio(data, enumbers):
+    result = dict()
+    nrows = data.shape[0]
+
+    rnn_range, attn_range = get_rnn_attn_range(enumbers)
+
     used_rnn_and_correct = data.prediction.isin(rnn_range) & data.is_ok == 1
     used_attn_and_correct = data.prediction.isin(attn_range) & data.is_ok == 1
     used_phog_and_correct = (data.prediction == enumbers.get_hog_id) & (data.is_ok == 1)
@@ -79,13 +96,37 @@ def compare_accuracy(data, enumbers, analyzed_result_log):
     result[Stats.used_attn_and_correct] = (data[used_attn_and_correct]).shape[0] / nrows
     result[Stats.used_phog_and_correct] = (data[used_phog_and_correct]).shape[0] / nrows
 
+    return result
+
+
+def write_result_to_file(result, file_name):
+    with open(file_name, 'a') as result_file:
+        result_file.write(str(result))
+        result_file.write('\n')
+
+
+def compare_accuracy(data, enumbers, analyzed_result_log):
+    result = dict()
+    # result['d10_term_to_all'] = nrows / original_nrows
+    # result['abs10_count_terminals'] = nrows
+
+    # Able to predict
+    able_to_predict_ratio = calculate_able_to_predict_ratio(data)
+    result.update(able_to_predict_ratio)
+
+    # Used as a predictor
+    used_as_predictor_ratio = calculate_used_as_predictor_ratio(data, enumbers)
+    result.update(used_as_predictor_ratio)
+
+    # Used and correct
+    used_and_correct_ratio = calculate_used_and_correct_ratio(data, enumbers)
+    result.update(used_and_correct_ratio)
+
     # Predictions and selector decisions
     # result['p10e_final_ok'] = (data[data.is_ok == 1]).shape[0] / data.shape[0]
     # result['p10_final_ok'] = (data[data.is_ok == 1]).shape[0] / nrows
 
-    with open(analyzed_result_log, 'a') as result_file:
-        result_file.write(str(result))
-        result_file.write('\n')
+    write_result_to_file(result, analyzed_result_log)
 
 
 def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
