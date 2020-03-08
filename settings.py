@@ -27,6 +27,35 @@ def include_all_project_paths():
 include_all_project_paths()
 
 
+class EncodedNumbers:
+    terminal_dict_size = 1000
+    attn_window_size = 50
+    EmptY_idx = 0
+    tdict_start_idx = 1
+
+    def __init__(self, terminal_dict_size):
+        self.terminal_dict_size = terminal_dict_size
+
+    def get_tdict_end_idx(self):
+        return self.terminal_dict_size - 1
+
+    def get_attn_start_idx(self):
+        return self.terminal_dict_size + 3
+
+    def get_attn_end_idx(self):
+        attn_start_idx = self.get_attn_start_idx()
+        return attn_start_idx + self.attn_window_size
+
+    def get_unk_id(self):
+        return self.terminal_dict_size
+
+    def get_hog_id(self):
+        return self.terminal_dict_size + 1
+
+    def get_eof_idx(self):
+        return self.terminal_dict_size + 2
+
+
 class Stats:
     rnn_able_to_predict = 'p05_rnn_could'
     attn_able_to_predict = 'p06_attn_could'

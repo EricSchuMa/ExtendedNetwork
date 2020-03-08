@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 from neural_code_completion.preprocess_code.utils import from_pickle
-from settings import Stats
+from settings import Stats, EncodedNumbers
 
 # Artur Andrzejak, Jan 2020
 
@@ -41,7 +41,7 @@ def add_is_ok_column(row, hog_id):
     return is_ok
 
 
-def compare_accuracy(data, terminal_dict_size, hog_id, analyzed_result_log):
+def compare_accuracy(data, enumbers, analyzed_result_log):
     result = dict()
     nrows = data.shape[0]
     # result['d10_term_to_all'] = nrows / original_nrows
@@ -57,15 +57,14 @@ def compare_accuracy(data, terminal_dict_size, hog_id, analyzed_result_log):
     result[Stats.phog_able_to_predict] = (data[phog_able_to_predict]).shape[0] / nrows
 
     # Used as a predictor
-    attn_window_size = 50
-    attn_start_idx = terminal_dict_size + 3
-    attn_end_idx = attn_start_idx + attn_window_size
-    rnn_range = range(0, terminal_dict_size)
+    attn_start_idx = enumbers.get_attn_start_idx()
+    attn_end_idx = enumbers.get_attn_end_idx()
+    rnn_range = range(0, enumbers.terminal_dict_size)
     attn_range = range(attn_start_idx, attn_end_idx + 1)
 
     used_rnn_as_predictor = data.prediction.isin(rnn_range)
     used_attn_as_predictor = data.prediction.isin(attn_range)
-    used_phog_as_predictor = data.prediction == hog_id
+    used_phog_as_predictor = data.prediction == enumbers.get_hog_id
 
     result[Stats.used_rnn_as_predictor] = (data[used_rnn_as_predictor]).shape[0] / nrows
     result[Stats.used_attn_as_predictor] = (data[used_attn_as_predictor]).shape[0] / nrows
@@ -74,7 +73,7 @@ def compare_accuracy(data, terminal_dict_size, hog_id, analyzed_result_log):
     # Used and correct
     used_rnn_and_correct = data.prediction.isin(rnn_range) & data.is_ok == 1
     used_attn_and_correct = data.prediction.isin(attn_range) & data.is_ok == 1
-    used_phog_and_correct = (data.prediction == hog_id) & (data.is_ok == 1)
+    used_phog_and_correct = (data.prediction == enumbers.get_hog_id) & (data.is_ok == 1)
 
     result[Stats.used_rnn_and_correct] = (data[used_rnn_and_correct]).shape[0] / nrows
     result[Stats.used_attn_and_correct] = (data[used_attn_and_correct]).shape[0] / nrows
@@ -90,7 +89,7 @@ def compare_accuracy(data, terminal_dict_size, hog_id, analyzed_result_log):
 
 
 def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
-         terminal_dict, analyzed_result_log, preprocess=True):
+         terminal_dict, analyzed_result_log, preprocess=False):
 
     if preprocess:
         merge_location_with_node_extra_info_and_save(merged_data_filename, result_log_filename,
@@ -103,25 +102,28 @@ def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
     terminal_pk = pd.read_pickle(terminal_dict)
     terminal_dict_size = len(terminal_pk['terminal_dict'])
 
-    hog_id = terminal_dict_size + 1
+    encoded_numbers = EncodedNumbers(terminal_dict_size)
 
     # Remove unneeded cols and rows
     data = merged_df.drop(columns=['prediction_idx', 'epoch_num', 'ast_idx', 'node_idx'])
 
     # Add column which tells whether prediction worked (i.e. truth=prediction, including case phog (new_prediction = 0)
-    data = data.assign(is_ok=lambda row: add_is_ok_column(row, hog_id))
+    data = data.assign(is_ok=lambda row: add_is_ok_column(row, encoded_numbers.get_hog_id()))
 
     # Eliminate eof (end of file)
-    data = data[data.truth != terminal_dict_size + 2]
-    data = data[data.prediction != terminal_dict_size + 2]
+    delete_eof_truth = data.truth != encoded_numbers.get_eof_idx()
+    delete_eof_prediction = data.prediction != encoded_numbers.get_eof_idx()
+    data = data[delete_eof_truth]
+    data = data[delete_eof_prediction]
     print("Number of all nodes without padding = ", len(data))
 
     # terminal-only data
-    without_EmptY_data = data[data.truth != 0]
+    without_empty =  data.truth != encoded_numbers.EmptY_idx
+    without_EmptY_data = data[without_empty]
 
-    compare_accuracy(without_EmptY_data, terminal_dict_size, hog_id, analyzed_result_log)
+    compare_accuracy(without_EmptY_data, encoded_numbers, analyzed_result_log)
 
-    compare_accuracy(data, terminal_dict_size, hog_id, analyzed_result_log)
+    compare_accuracy(data, encoded_numbers, analyzed_result_log)
 
 if __name__ == '__main__':
     main()

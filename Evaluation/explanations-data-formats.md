@@ -12,6 +12,7 @@ Artur Andrzejak, Tuyen Le (Jan 2020)
 + attn_start_idx = terminal_dict_size + 3
 + attn_end_idx = attn_start_idx + attn_window_size
 + unk_id = terminal_dict_size
++ hog_id = terminal_dict_size + 1
 
 
 #For prediction_viewer
