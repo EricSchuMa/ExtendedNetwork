@@ -158,7 +158,7 @@ class ConfigLocationData(ConfigDefaults):
 
     merged_data_filename: str = 'merged_df_Mar_6_1632.data'
 
-    analyzed_result_log: str = 'analyzed_result_log_Mar_6_1658.txt'
+    analyzed_result_log: str = 'analyzed_result_log_Mar_8_2349.txt'
 
 
 class ConfigLocationData1k_old(ConfigLocationData):
