@@ -28,7 +28,6 @@ include_all_project_paths()
 
 
 class EncodedNumbers:
-    terminal_dict_size = 1000
     attn_window_size = 50
     EmptY_idx = 0
     tdict_start_idx = 1
