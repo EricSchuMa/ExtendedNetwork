@@ -50,7 +50,7 @@ I have noticed that hog_id = unk_id + 1 (i.e. hog_id is 1001 and unk_id is 1000 
 + 'has_terminal': is true if node has field "value", i.e. node has terminal value
 + 'in_dict': is true if value of node is in terminal_dict (the truth value is in terminal_dict)
 + 'in_attn_window': is true if value of node is in attn_queue (the truth value is in attn_queue)
-+ 'phog_ok': is true if value of node in test data are same with value of node in hog test data. In other words, PHOG has predicted correctly
++ 'phog_ok': is true if value of node in test data is the same with value of node in corresponding hog data. In other words, PHOG has predicted correctly
 + 'ast_idx' = 'file_id'
 + 'node_idx' = 'ast_node_idx'
 
