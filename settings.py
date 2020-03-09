@@ -56,6 +56,8 @@ class EncodedNumbers:
 
 
 class Stats:
+    count_terminals = 'abs10_count_terminals'
+
     rnn_able_to_predict = 'p05_rnn_could'
     attn_able_to_predict = 'p06_attn_could'
     phog_able_to_predict = 'p07_phog_could'
@@ -162,7 +164,7 @@ class ConfigLocationData(ConfigDefaults):
 
     merged_data_filename: str = 'merged_df_Mar_6_1632.data'
 
-    analyzed_result_log: str = 'analyzed_result_log_Mar_9_1234.txt'
+    analyzed_result_log: str = 'analyzed_result_log_Mar_9_1758.txt'
 
 
 class ConfigLocationData1k_old(ConfigLocationData):

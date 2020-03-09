@@ -41,6 +41,13 @@ def add_is_ok_column(row, hog_id):
     return is_ok
 
 
+def calculate_terminals(data):
+    result = dict()
+    result[Stats.count_terminals] = data.shape[0]
+
+    return result
+
+
 def calculate_able_to_predict_ratio(data):
     result = dict()
     nrows = data.shape[0]
@@ -127,6 +134,10 @@ def compare_accuracy(data, enumbers, analyzed_result_log):
     result = dict()
     # result['d10_term_to_all'] = nrows / original_nrows
     # result['abs10_count_terminals'] = nrows
+
+    # Count terminals
+    count_terminals = calculate_terminals(data)
+    result.update(count_terminals)
 
     # Able to predict
     able_to_predict_ratio = calculate_able_to_predict_ratio(data)
