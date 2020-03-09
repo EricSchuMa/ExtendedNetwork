@@ -68,6 +68,10 @@ class Stats:
     used_attn_and_correct = 'p20att_attn_ok'
     used_phog_and_correct = 'p20hog_phog_ok'
 
+    rnn_and_phog_correct = 'p50rnn_phog_ok'
+    attn_and_phog_correct = 'p50attn_phog_ok'
+    rnn_or_attn_and_phog_correct = 'p50rnn_attn_phog_ok'
+
 
 class Dirs(Enum):
     """
@@ -158,7 +162,7 @@ class ConfigLocationData(ConfigDefaults):
 
     merged_data_filename: str = 'merged_df_Mar_6_1632.data'
 
-    analyzed_result_log: str = 'analyzed_result_log_Mar_8_2349.txt'
+    analyzed_result_log: str = 'analyzed_result_log_Mar_9_1234.txt'
 
 
 class ConfigLocationData1k_old(ConfigLocationData):

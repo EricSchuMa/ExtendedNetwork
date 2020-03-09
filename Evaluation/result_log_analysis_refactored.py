@@ -99,6 +99,24 @@ def calculate_used_and_correct_ratio(data, enumbers):
     return result
 
 
+def calculate_used_and_correct_together_ratio(data, enumbers):
+    result = dict()
+    nrows = data.shape[0]
+
+    rnn_range, attn_range = get_rnn_attn_range(enumbers)
+
+    rnn_and_phog_correct = data.prediction.isin(rnn_range) & (data.is_ok == 1) & (data.phog_ok == 1)
+    attn_and_phog_correct = data.prediction.isin(attn_range) & (data.is_ok == 1) & (data.phog_ok == 1)
+    rnn_or_attn_and_phog_correct = (data.prediction.isin(rnn_range) | data.prediction.isin(attn_range)) \
+                                   & (data.is_ok == 1) & (data.phog_ok == 1)
+
+    result[Stats.rnn_and_phog_correct] = (data[rnn_and_phog_correct]).shape[0] / nrows
+    result[Stats.attn_and_phog_correct] = (data[attn_and_phog_correct]).shape[0] / nrows
+    result[Stats.rnn_or_attn_and_phog_correct] = (data[rnn_or_attn_and_phog_correct]).shape[0] / nrows
+
+    return result
+
+
 def write_result_to_file(result, file_name):
     with open(file_name, 'a') as result_file:
         result_file.write(str(result))
@@ -121,6 +139,10 @@ def compare_accuracy(data, enumbers, analyzed_result_log):
     # Used and correct
     used_and_correct_ratio = calculate_used_and_correct_ratio(data, enumbers)
     result.update(used_and_correct_ratio)
+
+    # Used rnn or attn and phog is also correct
+    used_and_correct_together_ratio = calculate_used_and_correct_together_ratio(data, enumbers)
+    result.update(used_and_correct_together_ratio)
 
     # Predictions and selector decisions
     # result['p10e_final_ok'] = (data[data.is_ok == 1]).shape[0] / data.shape[0]
