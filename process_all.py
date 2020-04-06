@@ -80,9 +80,10 @@ def run_eval_log_analysis(config):
     nodes_extra_info_filename = fullpath(Dirs.PICKLE_AST, config.nodes_extra_info_filename)
     terminal_dict = fullpath(Dirs.PICKLE_AST, config.terminal_dict_filename)
     analyzed_result_log = fullpath(Dirs.ANALYZED_RESULT_LOG, config.analyzed_result_log)
+    preprocess = True
 
     eval_log_analyzer.main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
-                           terminal_dict, analyzed_result_log)
+                           terminal_dict, analyzed_result_log, preprocess=preprocess)
 
 
 ### Overall execution

@@ -1,10 +1,11 @@
 # Overview
 Explanations of the result formats and encodings used in the project.
-
-Artur Andrzejak, Tuyen Le (Jan 2020)
+Artur Andrzejak, Tuyen Le (January/March 2020)
 
 #Encoded numbers
+Meaning of the index values used in "result_log_analysis_refactored.py".
 + terminal_dict_size: 1k, 10k or 50k
+
 + EmptY_idx = 0 (for nodes without terminal values)
 + tdict_start_idx = 1
 + tdict_end_idx = terminal_dict_size - 1
@@ -16,33 +17,7 @@ Artur Andrzejak, Tuyen Le (Jan 2020)
 + eof_idx = terminal_dict_size + 2
 
 
-#For prediction_viewer
-#####Meaning of inserts in source files representing prediction results for the next token.
 
-New encoding (**dph**) | Old encoding | Meaning
----| --- | ---
-`+..` | S | the prediction is true and the truth value is in [tdict_start_idx..tdict_end_idx]
-`-+.` | A | the prediction is true and the truth value >= attn_start_idx
-`--+` | H-truth value | the prediction is HOG
-`*--` | F-prediction value-truth value | the prediction is false and the truth value is in [tdict_start_idx..tdict_end_idx]
-`-*-` | G-prediction value-truth value | the prediction is false and the truth value >= attn_start_idx
-`---` | U-prediction value-truth value | the prediction is false and the truth value is unk_id
-`???` | HU | the prediction is HOG and the truth value is unk_id
-not occur | UNK | unknown id. However, there is no UNK in the prediction values
-not occur | AU | the prediction is true and the truth value is unk_id
-
-
-#### Further notes
-Tuyen, 20-01-2020, [email](https://mail.google.com/mail/u/0/?tab=wm#inbox/KtbxLvHcLqJnHqznMZSDHsTVrxWsqtbQBB)
-
-I have modified the prediction_viewer.py as below. please note that,
-if the prediction / truth value is in [0..999], the value will be the
-corresponding terminal in the terminal_dict. Otherwise, the value will be
-from 1000 upwards.
-
-I have noticed that hog_id = unk_id + 1 (i.e. hog_id is 1001 and unk_id is 1000 in this case).
-
- (File "2020-01-20-16-06-prediction_viewer_results.zip"):
 
 #For node_extra_info / node_facts
 #####Explanations of columns in node_extra_info / node_facts table (extra info for test data)
@@ -109,13 +84,35 @@ Infos from preprocess_code.get_terminal_extended.process():
 
 
 Terminal dictionary (terminal_dict() is loaded from terminal_dict_filename.
-*    We use "1k" size (effectively 1000).
+*    We use "1k" or "10k" size (effectively 1000 or 10000).
 *    Index 0 belongs to "EmptY" which means that the node has a non-terminal value.
-*    => Effectively we have indices 1..999.
+*    => Effectively we have indices 1..999 (or 99999).
 
-Used input files:
-*    terminal_dict_filename = '../pickle_data/terminal_dict_1k_PY_train_dev.pickle'
-    =>     vocab_size = unk_id = 1000
-*    test_filename = '../../data/python10k_dev.json'
-*    testHOG_filename = '../../data/phog_dev.json'
+ 
+#Prediction_viewer
+#####Meaning of inserts in source files representing prediction results for the next token.
 
+New encoding (**dph**) | Old encoding | Meaning
+---| --- | ---
+`+..` | S | the prediction is true and the truth value is in [tdict_start_idx..tdict_end_idx]
+`-+.` | A | the prediction is true and the truth value >= attn_start_idx
+`--+` | H-truth value | the prediction is HOG
+`*--` | F-prediction value-truth value | the prediction is false and the truth value is in [tdict_start_idx..tdict_end_idx]
+`-*-` | G-prediction value-truth value | the prediction is false and the truth value >= attn_start_idx
+`---` | U-prediction value-truth value | the prediction is false and the truth value is unk_id
+`???` | HU | the prediction is HOG and the truth value is unk_id
+not occur | UNK | unknown id. However, there is no UNK in the prediction values
+not occur | AU | the prediction is true and the truth value is unk_id
+
+
+#### Further notes on prediction viewer
+Tuyen, 20-01-2020, [email](https://mail.google.com/mail/u/0/?tab=wm#inbox/KtbxLvHcLqJnHqznMZSDHsTVrxWsqtbQBB)
+
+I have modified the prediction_viewer.py as below. please note that,
+if the prediction / truth value is in [0..999], the value will be the
+corresponding terminal in the terminal_dict. Otherwise, the value will be
+from 1000 upwards.
+
+I have noticed that hog_id = unk_id + 1 (i.e. hog_id is 1001 and unk_id is 1000 in this case).
+
+ (File "2020-01-20-16-06-prediction_viewer_results.zip"):
