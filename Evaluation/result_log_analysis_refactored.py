@@ -81,7 +81,7 @@ class EncodingConstants:
     def get_bin_labels(self) -> list:
         """Returns array with bin labels used with Pandas 'cut'"""
         bin_labels = ['empty', 'dict', 'unk', 'hog', 'eof', 'attn']
-
+        return bin_labels
 
 class Stats:
     count_terminals = 'abs10_count_terminals'
@@ -222,6 +222,17 @@ def write_result_to_file(result, file_name):
         result_file.write(str(result))
         result_file.write('\n')
 
+def get_df_head(df, nrows=500):
+    """Aux routine to speed up 'collecting data' in debugging in PyCharm"""
+    def print_df_len(df):
+        # Set breakpoint in PyCharm/Intellij on the next line
+        size = len(df)
+        # print (size)
+
+    df_head = df.head(nrows)
+    print_df_len(df_head)
+
+
 
 def compare_accuracy(data, enumbers, analyzed_result_log):
     result = dict()
@@ -279,10 +290,11 @@ def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
     data = data.assign(is_ok=lambda row: add_is_ok_column(row, encodingConst.hog_id))
 
     # Add categories of predictions and ground truth
+    data['truth_categorized'] = pd.cut(data.truth, bins=encodingConst.get_bin_limits(),
+                                       labels=encodingConst.get_bin_labels())
     data['prediction_categorized'] = pd.cut(data.prediction, bins=encodingConst.get_bin_limits(),
                                          labels=encodingConst.get_bin_labels())
-    data['truth_categorized'] = pd.cut(data.truth, bins=encodingConst.get_bin_limits(),
-                                         labels=encodingConst.get_bin_labels())
+
 
     # Eliminate eof (end of file)
     delete_eof_truth = data.truth != encodingConst.eof_idx
@@ -290,6 +302,8 @@ def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
     data = data[delete_eof_truth]
     data = data[delete_eof_prediction]
     print("Number of all nodes without padding = ", len(data))
+    #print(data.head(50))
+    get_df_head(data)
 
     # terminal-only data
     without_empty =  data.truth != encodingConst.empty_idx
