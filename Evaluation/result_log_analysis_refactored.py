@@ -4,9 +4,103 @@
 import pandas as pd
 import numpy as np
 from neural_code_completion.preprocess_code.utils import from_pickle
-from settings import Stats, EncodedNumbers
 
-# Artur Andrzejak, Jan 2020
+
+class EncodedNumbers:
+    attn_window_size = 50
+    EmptY_idx = 0
+    tdict_start_idx = 1
+
+    def __init__(self, terminal_dict_size):
+        self.terminal_dict_size = terminal_dict_size
+
+    def get_tdict_end_idx(self):
+        return self.terminal_dict_size - 1
+
+    def get_attn_start_idx(self):
+        return self.terminal_dict_size + 3
+
+    def get_attn_end_idx(self):
+        attn_start_idx = self.get_attn_start_idx()
+        return attn_start_idx + self.attn_window_size
+
+    def get_unk_id(self):
+        return self.terminal_dict_size
+
+    def get_hog_id(self):
+        return self.terminal_dict_size + 1
+
+    def get_eof_idx(self):
+        return self.terminal_dict_size + 2
+
+class EncodingConstants:
+    """Using properties, see https://www.freecodecamp.org/news/python-property-decorator/"""
+
+    def __init__(self, terminal_dict_size, attn_window_size = 50):
+        self._dict_size = terminal_dict_size
+        self._attn_window_size = attn_window_size
+
+    @property
+    def empty_idx(self):
+        return 0
+
+    @property
+    def tdict_start_idx(self):
+        return 1
+
+    @property
+    def tdict_end_idx(self):
+        return self._dict_size - 1
+
+    @property
+    def unk_id(self):
+        return self._dict_size
+
+    @property
+    def hog_id(self):
+        return self._dict_size + 1
+
+    @property
+    def eof_idx(self):
+        return self._dict_size + 2
+
+    @property
+    def attn_start_idx(self):
+        return self._dict_size + 3
+    
+    @property
+    def attn_end_idx(self):
+        return self.attn_start_idx + self._attn_window_size
+    
+    def get_bin_limits(self) -> list:
+        """Returns array with bin limits used with Pandas 'cut'"""
+        limits = [self.empty_idx-1, self.empty_idx, self.tdict_end_idx,
+                  self.unk_id, self.hog_id, self.eof_idx, self.attn_end_idx]
+        return limits
+
+    def get_bin_labels(self) -> list:
+        """Returns array with bin labels used with Pandas 'cut'"""
+        bin_labels = ['empty', 'dict', 'unk', 'hog', 'eof', 'attn']
+
+
+class Stats:
+    count_terminals = 'abs10_count_terminals'
+
+    rnn_able_to_predict = 'p05_rnn_could'
+    attn_able_to_predict = 'p06_attn_could'
+    phog_able_to_predict = 'p07_phog_could'
+
+    used_rnn_as_predictor = 'p100rnn_share_rnn_preds'
+    used_attn_as_predictor = 'p100att_share_attn_preds'
+    used_phog_as_predictor = 'p100hog_share_phog_preds'
+
+    used_rnn_and_correct = 'p20rnn_rnn_ok'
+    used_attn_and_correct = 'p20att_attn_ok'
+    used_phog_and_correct = 'p20hog_phog_ok'
+
+    rnn_and_phog_correct = 'p50rnn_phog_ok'
+    attn_and_phog_correct = 'p50attn_phog_ok'
+    rnn_or_attn_and_phog_correct = 'p50rnn_attn_phog_ok'
 
 
 def merge_location_with_node_extra_info_and_save(merged_data_filename, result_log_filename,
@@ -176,22 +270,29 @@ def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
     terminal_dict_size = len(terminal_pk['terminal_dict'])
 
     encoded_numbers = EncodedNumbers(terminal_dict_size)
+    encodingConst   = EncodingConstants(terminal_dict_size)
 
-    # Remove unneeded cols and rows
+    # Remove obsolete cols and rows
     data = merged_df.drop(columns=['prediction_idx', 'epoch_num', 'ast_idx', 'node_idx'])
 
     # Add column which tells whether prediction worked (i.e. truth=prediction, including case phog (new_prediction = 0)
-    data = data.assign(is_ok=lambda row: add_is_ok_column(row, encoded_numbers.get_hog_id()))
+    data = data.assign(is_ok=lambda row: add_is_ok_column(row, encodingConst.hog_id))
+
+    # Add categories of predictions and ground truth
+    data['prediction_categorized'] = pd.cut(data.prediction, bins=encodingConst.get_bin_limits(),
+                                         labels=encodingConst.get_bin_labels())
+    data['truth_categorized'] = pd.cut(data.truth, bins=encodingConst.get_bin_limits(),
+                                         labels=encodingConst.get_bin_labels())
 
     # Eliminate eof (end of file)
-    delete_eof_truth = data.truth != encoded_numbers.get_eof_idx()
-    delete_eof_prediction = data.prediction != encoded_numbers.get_eof_idx()
+    delete_eof_truth = data.truth != encodingConst.eof_idx
+    delete_eof_prediction = data.prediction != encodingConst.eof_idx
     data = data[delete_eof_truth]
     data = data[delete_eof_prediction]
     print("Number of all nodes without padding = ", len(data))
 
     # terminal-only data
-    without_empty =  data.truth != encoded_numbers.EmptY_idx
+    without_empty =  data.truth != encodingConst.empty_idx
     without_EmptY_data = data[without_empty]
 
     compare_accuracy(without_EmptY_data, encoded_numbers, analyzed_result_log)

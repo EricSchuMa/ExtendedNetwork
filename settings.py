@@ -27,52 +27,7 @@ def include_all_project_paths():
 include_all_project_paths()
 
 
-class EncodedNumbers:
-    attn_window_size = 50
-    EmptY_idx = 0
-    tdict_start_idx = 1
 
-    def __init__(self, terminal_dict_size):
-        self.terminal_dict_size = terminal_dict_size
-
-    def get_tdict_end_idx(self):
-        return self.terminal_dict_size - 1
-
-    def get_attn_start_idx(self):
-        return self.terminal_dict_size + 3
-
-    def get_attn_end_idx(self):
-        attn_start_idx = self.get_attn_start_idx()
-        return attn_start_idx + self.attn_window_size
-
-    def get_unk_id(self):
-        return self.terminal_dict_size
-
-    def get_hog_id(self):
-        return self.terminal_dict_size + 1
-
-    def get_eof_idx(self):
-        return self.terminal_dict_size + 2
-
-
-class Stats:
-    count_terminals = 'abs10_count_terminals'
-
-    rnn_able_to_predict = 'p05_rnn_could'
-    attn_able_to_predict = 'p06_attn_could'
-    phog_able_to_predict = 'p07_phog_could'
-
-    used_rnn_as_predictor = 'p100rnn_share_rnn_preds'
-    used_attn_as_predictor = 'p100att_share_attn_preds'
-    used_phog_as_predictor = 'p100hog_share_phog_preds'
-
-    used_rnn_and_correct = 'p20rnn_rnn_ok'
-    used_attn_and_correct = 'p20att_attn_ok'
-    used_phog_and_correct = 'p20hog_phog_ok'
-
-    rnn_and_phog_correct = 'p50rnn_phog_ok'
-    attn_and_phog_correct = 'p50attn_phog_ok'
-    rnn_or_attn_and_phog_correct = 'p50rnn_attn_phog_ok'
 
 
 class Dirs(Enum):
