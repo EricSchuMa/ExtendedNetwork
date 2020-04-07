@@ -84,11 +84,7 @@ Infos from preprocess_code.get_terminal_extended.process():
 #### Meaning of the _prediction values_ in results_log file
 The results_log file has two prediction-related values:
 * "_prediction_": encoding of the prediction as returned by NN/TensorFlow 
-* "_new_prediction_": a summary of the prediction result computed by Max as computed in evaluation_with_loc.convert_labels_and_predictions(), with:
-    * 0: pred == hogID
-    * 1: pred == unkID
-    * 2: pred == label (prediction and ground truth are same)
-    * 3: otherwise
+* "_new_prediction_": a summary of the prediction result computed by Max (explanation below).
 
 To understand the prediction value ("_prediction_") we need to understand how the TF model predicts (this is a probably guess since we cannot verify TF without large effort):
 * The "meta-switch" of the extended-network has choice between tree prediction methods:
@@ -101,6 +97,20 @@ A. RNN, B. pointer net, C. PHOG.
 * If pointer net is used, the prediction will be in the range [attn_start_idx..attn_end_idx] (which has size attn_window_size: 50). This range is above the range of the terminal dict (attn_start_idx = terminal_dict_size + 3). 
 ##### For C (PHOG)
 * If PHOG is used, the prediction output is hog_id (= terminal_dict_size + 1). **This does not tell yet whether the prediction is correct** (or does? Check this!).
+
+#### Converted ground truth and prediction values
+Max code uses the original ground truth ("label") and prediction values and transforms them as follows n evaluation_with_loc.convert_labels_and_predictions().
+The purpose is to compute the confusion matrix. The transformations described below are as in code, but their interpretation is OURs (=> Check with Max).
+* "_new_prediction_": derived from _prediction_:
+    * 0: pred == hogID. => Prediction indicates that the PHOG-computed value should be taken. It does not say that the result is OK (or does it?).
+    * 1: pred == unkID. => Ext. network returned that it cannot predict (does this happen?)
+    * 2: pred == label. => Prediction was done by the RNN or pointer network, and it is correct (ground truth and prediction are the same).
+    * 3: otherwise. => Most likely: the prediction was done by the RNN or pointer network, and failed.
+
+* "_new_label_": derived from _label_ (see code: `new_labels = [0 if label == hogID else 1 if label == unkID else 2` )
+    * 0: pred == hogID. => The PHOG prediction is correct and should be used. 
+    * 1: pred == unkID. => RNN/pointer net cannot predict, and PHOG failed to predict correctly (true?)
+    * 2: pred == label. => Prediction can be done by the RNN or pointer network, the value of "_label_" indicates the actual ground truth.
 
 ### Information on step 3: code result_log_analysis_refactored.py
 We describe here the concrete values and meaning of the ground truth values as assumed in the code "result_log_analysis_refactored.py".
