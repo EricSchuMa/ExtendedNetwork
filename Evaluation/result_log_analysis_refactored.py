@@ -13,8 +13,7 @@ def merge_location_with_node_extra_info_and_save(merged_data_filename, result_lo
                                                  nodes_extra_info_filename):
 
     # Important: run with working directory == project root!
-    filename_node_facts = nodes_extra_info_filename
-    node_facts: dict = from_pickle(filename_node_facts)
+    node_facts: dict = from_pickle(nodes_extra_info_filename)
 
     data_raw = pd.read_csv(result_log_filename)
 

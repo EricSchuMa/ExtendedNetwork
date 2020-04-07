@@ -1,26 +1,27 @@
-# Overview
-Explanations of the result formats and encodings used in the project.
-Artur Andrzejak, Tuyen Le (January/March 2020)
+* Explanations of the result formats and encodings used in the project.
+* Artur Andrzejak, Tuyen Le (January/March 2020)
 
-#Encoded numbers
-Meaning of the index values used in "result_log_analysis_refactored.py".
-+ terminal_dict_size: 1k, 10k or 50k
+# Evaluation
 
-+ EmptY_idx = 0 (for nodes without terminal values)
-+ tdict_start_idx = 1
-+ tdict_end_idx = terminal_dict_size - 1
-+ attn_window_size: 50
-+ attn_start_idx = terminal_dict_size + 3
-+ attn_end_idx = attn_start_idx + attn_window_size
-+ unk_id = terminal_dict_size
-+ hog_id = terminal_dict_size + 1
-+ eof_idx = terminal_dict_size + 2
+## Overview of the evaluation
+Analysis of results consists of the following steps:
+1. During preprocessing (specifically, running get_terminal_extended.py) we create a file "node_extra_info" with 
+extended ground truth data.  
+2. During computing of predictions (running evaluation_with_loc.py) we create a log file with results of predictions (results_log file).
+3. Both files are merged in the 3rd step (running result_log_analysis_refactored.py), and cached. Further analysis with the cached file computes entries in the Table 4 (later Table 4 and 5) in the paper.
 
-
+###Note on terminal dictionary
+Terminal dictionary (terminal_dict() is loaded from terminal_dict_filename.
+*    We use "1k" or "10k" size (effectively 1000 or 10000).
+*    Index 0 belongs to "EmptY" which means that the node has a non-terminal value.
+*    => Effectively we have indices 1..999 (for 1k), or 1..99999 (for 10k).
 
 
-#For node_extra_info / node_facts
-#####Explanations of columns in node_extra_info / node_facts table (extra info for test data)
+## Detailed information on evaluation files and code
+
+###Information of step 1: node_extra_info
+The file "node_extra_info" with extended ground truth data is created when running running get_terminal_extended.py.
+Explanations of columns in node_extra_info:
 + 'file_id', 'src_line', 'ast_node_idx': location of the AST node
 + 'has_terminal': is true if node has field "value", i.e. node has terminal value
 + 'in_dict': is true if value of node is in terminal_dict (the truth value is in terminal_dict)
@@ -29,7 +30,7 @@ Meaning of the index values used in "result_log_analysis_refactored.py".
 + 'ast_idx' = 'file_id'
 + 'node_idx' = 'ast_node_idx'
 
-#####How we get this:
+####How we get this while running get_terminal_extended.py:
 Infos from get_terminal_extended.process():
 + [line 67] node_truths.has_terminal = 'value' in dic
 + [line 68] node_truths.ast_idx = ast_index
@@ -38,14 +39,17 @@ Infos from get_terminal_extended.process():
 + [line 74] node_truths.in_attn_window = dic_value in attn_que
 + [line 75] node_truths.phog_ok = (dic_value == dic_hog["value"])
 
-#For results_log
-#####Explanations of columns in results_log table (prediction results with location info)
+###Information of step 2: results_log
+Here we explain the meaning of columns in the results_log file (created during predictions), and meaning of their values. 
+
+####Explanations of columns in results_log table
+These are the prediction results with location info, currently 'results_log_Mar_5_1820.csv'.
 
 * "prediction_idx": index of current predictions (for 50k eval data and 10k dict, 0..31,692,799) <!--(0.. 6.5 millions)-->
 * "epoch_num": prediction epoch, for 50k eval data and 10k dict, 0..4,951 <!--0...1015 (each has 6400 predictions)-->
-* "truth": encoding of the ground truth 
-* "prediction": encoding of the prediction 
-* "new_prediction": summary of the result by Max, with:
+* "**truth**": encoding of the ground truth (see extended description below)
+* "_prediction_": encoding of the prediction (see extended description below) 
+* "_new_prediction_": summary of the prediction result by Max, with:
     * 0: pred == hogID
     * 1: pred == unkID
     * 2: pred == label (= truth)
@@ -53,40 +57,68 @@ Infos from get_terminal_extended.process():
 * "file_id", "src_line", "ast_node_idx": location of the AST node
 
 
-# Encoding of truth and prediction in results_log
-##### Explanations of meaning of encodings for columns truth and prediction in results_log 
-
-# Summary:
-If *value* is ... (for specific numbers, please check [Encoded numbers](#Encoded numbers))
-
-* EmptY_idx: means ast node has no terminal value.
-* tdict_start_idx..tdict_end_idx: ID in the terminal dictionary.
+#### Meaning of _ground truth_ values in results_log file
+The constants used to for the value of the column "truth" (in code it is "label") have the following meaning (for their concrete value see information on step 3 below): 
+* EmptY_idx:  AST node has no terminal value (and we predict only terminal values)
+* tdict_start_idx..tdict_end_idx: the terminal value is in the terminal dictionary, so RNN should be able to predict.
 * unk_id: this means that pointer network CANNOT predict (not in dict, 
 		not in attention window), AND phog predicted wrongly.
 * hog_id: this means that hog predicted correctly BUT pointer net failed completely.
-* eof_idx: which (probably) is the constant for the padding in preprocessing
-* attn_start_idx...attn_end_idx: token is can be found in the attention windown, with
- *  location_index = number of tokens to go back to get replica of current token = (*value*-(attn_start_idx)+1). 
- * > Example: dic_value = 'TemplateSpec', i = 7 (node_idx), att_que {7} = [.., 'TemplateSpec', 'Simple', 'EmptY']. 
-   > We have location_index = 3 and <value> = 1005 (in code *value* = location_id).  
+* eof_idx: constant for the padding in preprocessing, just ignore
+* attn_start_idx...attn_end_idx: token can be found in the attention windown, with _location_index_ := number of tokens to go back to get a previous copy of current token = (*value*-(attn_start_idx)+1). 
+    * Example: dic_value = 'TemplateSpec', i = 7 (node_idx), att_que {7} = [.., 'TemplateSpec', 'Simple', 'EmptY']. 
+        * We have location_index = 3 and <value> = 1005 (in code *value* = location_id).  
 
-### Explanation how we get this:
-
+##### Code locations which give us the interpretation of the ground truth values
 Infos from preprocess_code.get_terminal_extended.process():
-* [line: 30]  unk_id: first ID that is not in terminal_dict
+* [line: 30]  unk_id: set this const to the first ID "above" the ID-range of the terminal_dict
 * [line: 48]  hog = unk_id + 1
-* [line: 74]  order is [<seq_dict>] [unk, hog_id, eof] [<loc_idx>]
+* [line: 74]  order of constant values is [<seq_dict>] [unk, hog_id, eof] [<loc_idx>]
 * [line: 74]  location_id = unk_id + 2 + location_index  # [unk, hog_id, eof, loc_idx]
 * [line: 141] attn_size = 50
 * [line: 148] process( ..., unk_id=vocab_size, ...)
-* [line: 48]  location_index = [len(attn_que)-ind for ind, x
-* [line: 48]      in enumerate(attn_que) if x == dic_value][-1]
+* [line: 48]  location_index = 
+        [len(attn_que)-ind for ind, x in enumerate(attn_que) if x == dic_value][-1]
 
 
-Terminal dictionary (terminal_dict() is loaded from terminal_dict_filename.
-*    We use "1k" or "10k" size (effectively 1000 or 10000).
-*    Index 0 belongs to "EmptY" which means that the node has a non-terminal value.
-*    => Effectively we have indices 1..999 (or 99999).
+#### Meaning of the _prediction values_ in results_log file
+The results_log file has two prediction-related values:
+* "_prediction_": encoding of the prediction as returned by NN/TensorFlow 
+* "_new_prediction_": a summary of the prediction result computed by Max as computed in evaluation_with_loc.convert_labels_and_predictions(), with:
+    * 0: pred == hogID
+    * 1: pred == unkID
+    * 2: pred == label (prediction and ground truth are same)
+    * 3: otherwise
+
+To understand the prediction value ("_prediction_") we need to understand how the TF model predicts (this is a probably guess since we cannot verify TF without large effort):
+* The "meta-switch" of the extended-network has choice between tree prediction methods:
+A. RNN, B. pointer net, C. PHOG.
+##### For A (RNN)
+* RNN can decide what the next token does not have value and sets prediction to "EmptY_idx" (== 0). This happens in a large number of predictions!
+* RNN predics a value from the terminal dictionary [tdict_start_idx...tdict_end_idx]
+* RNN decides that it cannot predict and returns unkID (== terminal_dict_size)
+##### For B (Pointer net)
+* If pointer net is used, the prediction will be in the range [attn_start_idx..attn_end_idx] (which has size attn_window_size: 50). This range is above the range of the terminal dict (attn_start_idx = terminal_dict_size + 3). 
+##### For C (PHOG)
+* If PHOG is used, the prediction output is hog_id (= terminal_dict_size + 1). **This does not tell yet whether the prediction is correct** (or does? Check this!).
+
+### Information on step 3: code result_log_analysis_refactored.py
+We describe here the concrete values and meaning of the ground truth values as assumed in the code "result_log_analysis_refactored.py".
+Depending on the size of the terminal directory (terminal_dict_size) we get different values of the ground truth constants.
+##### Note: the interpretations below does not say whether they apply to the ground truth or prediction - check!
+
+The **terminal_dict_size** can have size 1k, 10k or 50k. We get:
+* EmptY_idx = 0 (marker of nodes without terminal values)
+* tdict_start_idx = 1 (1st index of the values in the terminals dict)
+* tdict_end_idx = terminal_dict_size - 1 (last index of the values in the terminals dict)
+* unk_id = terminal_dict_size 
+* hog_id = terminal_dict_size + 1 (marker that the PHOG prediction is used or PHOG-usage predicted)
+* eof_idx = terminal_dict_size + 2 (marker for padding)
+* Related to pointer network results:
+    + attn_window_size: 50 (parameter, size of the look-back window)
+    + attn_start_idx = terminal_dict_size + 3  (first index for ("shifted") values predicted by pointer net)
+    + attn_end_idx = attn_start_idx + attn_window_size (first index for ("shifted") values predicted by pointer net)
+
 
  
 #Prediction_viewer
