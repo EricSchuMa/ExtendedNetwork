@@ -19,7 +19,7 @@ Terminal dictionary (terminal_dict() is loaded from terminal_dict_filename.
 
 ## Detailed information on evaluation files and code
 
-###Information of step 1: node_extra_info
+###Information on step 1: node_extra_info
 The file "node_extra_info" with extended ground truth data is created when running running get_terminal_extended.py.
 Explanations of columns in node_extra_info:
 + 'file_id', 'src_line', 'ast_node_idx': location of the AST node
@@ -39,7 +39,7 @@ Infos from get_terminal_extended.process():
 + [line 74] node_truths.in_attn_window = dic_value in attn_que
 + [line 75] node_truths.phog_ok = (dic_value == dic_hog["value"])
 
-###Information of step 2: results_log
+###Information on step 2: results_log
 Here we explain the meaning of columns in the results_log file (created during predictions), and meaning of their values. 
 
 ####Explanations of columns in results_log table
@@ -63,8 +63,8 @@ The constants used to for the value of the column "truth" (in code it is "label"
 * tdict_start_idx..tdict_end_idx: the terminal value is in the terminal dictionary, so RNN should be able to predict.
 * unk_id: this means that pointer network CANNOT predict (not in dict, 
 		not in attention window), AND phog predicted wrongly.
-* hog_id: this means that hog predicted correctly BUT pointer net failed completely.
-* eof_idx: constant for the padding in preprocessing, just ignore
+* hog_id: this means that PHOG predicted correctly BUT RNN and pointer net failed.
+* eof_idx: constant for the padding in preprocessing, just ignore.
 * attn_start_idx...attn_end_idx: token can be found in the attention windown, with _location_index_ := number of tokens to go back to get a previous copy of current token = (*value*-(attn_start_idx)+1). 
     * Example: dic_value = 'TemplateSpec', i = 7 (node_idx), att_que {7} = [.., 'TemplateSpec', 'Simple', 'EmptY']. 
         * We have location_index = 3 and <value> = 1005 (in code *value* = location_id).  
@@ -102,7 +102,7 @@ A. RNN, B. pointer net, C. PHOG.
 Max code uses the original ground truth ("label") and prediction values and transforms them as follows n evaluation_with_loc.convert_labels_and_predictions().
 The purpose is to compute the confusion matrix. The transformations described below are as in code, but their interpretation is OURs (=> Check with Max).
 * "_new_prediction_": derived from _prediction_:
-    * 0: pred == hogID. => Prediction indicates that the PHOG-computed value should be taken. It does not say that the result is OK (or does it?).
+    * 0: pred == hogID. => Prediction indicates that the PHOG-computed value should be used as a prediction. It does not say that the result is OK (or does it?).
     * 1: pred == unkID. => Ext. network returned that it cannot predict (does this happen?)
     * 2: pred == label. => Prediction was done by the RNN or pointer network, and it is correct (ground truth and prediction are the same).
     * 3: otherwise. => Most likely: the prediction was done by the RNN or pointer network, and failed.
@@ -115,7 +115,7 @@ The purpose is to compute the confusion matrix. The transformations described be
 ### Information on step 3: code result_log_analysis_refactored.py
 We describe here the concrete values and meaning of the ground truth values as assumed in the code "result_log_analysis_refactored.py".
 Depending on the size of the terminal directory (terminal_dict_size) we get different values of the ground truth constants.
-##### Note: the interpretations below does not say whether they apply to the ground truth or prediction - check!
+##### Note: the interpretations below do not say whether they apply to the ground truth or prediction - check!
 
 The **terminal_dict_size** can have size 1k, 10k or 50k. We get:
 * EmptY_idx = 0 (marker of nodes without terminal values)
