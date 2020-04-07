@@ -205,3 +205,15 @@ class ConfigLocationData10kDict(ConfigLocationData):
 #class ConfigCurrent(ConfigLocationData1k_old):
 class ConfigCurrent(ConfigLocationData10kDict):
     pass
+
+
+class ConfigProcessingSteps:
+    """
+    Determines which processing steps should be enabled
+    """
+    create_json: bool = False
+    create_pickle_terminal: bool = False
+    create_pickle_non_terminal: bool = False
+    create_models: bool = False
+    run_evaluation: bool = False
+    run_eval_log_analysis: bool = True
