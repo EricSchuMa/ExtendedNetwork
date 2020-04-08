@@ -40,8 +40,8 @@ class Dirs(Enum):
     MODELS_TF: str = 'data/trained_models/'
     RESULT_LOGS: str = 'data/result_log/'
     CACHE: str = 'data/cache/'
-    CACHE_MAR: str = 'data/cache_mar/'
-    ANALYZED_RESULT_LOG: str = 'data/analyzed_result_log/'
+    CACHE_MAR: str = CACHE
+    ANALYZED_RESULT_LOG: str = RESULT_LOGS
 
     # Old dir schema, data mixed with source code
     # pickle_ast: str = 'neural_code_completion/pickle_data/'
@@ -119,7 +119,8 @@ class ConfigLocationData(ConfigDefaults):
 
     merged_data_filename: str = 'merged_df_Mar_6_1632.data'
 
-    analyzed_result_log: str = 'analyzed_result_log_Mar_9_1758.txt'
+    # analyzed_result_log: str = 'analyzed_result_log_Mar_9_1758.txt'
+    analyzed_result_log: str = 'analyzed_result_log.txt'
 
 
 class ConfigLocationData1k_old(ConfigLocationData):

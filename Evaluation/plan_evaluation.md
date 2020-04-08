@@ -3,7 +3,8 @@
 ## Possible options
 
 ### Data properties
-+ (d10) ratio terminal to all nodes (not needed)
++ (d05) number of all nodes
++ (d10) ratio "nodes-with-value" to all nodes 
 #### Principal power
 + How many times: 
   + (p05) RNN could have predicted? (i.e. #in_dict / #all)

@@ -102,7 +102,7 @@ A. RNN, B. pointer net, C. PHOG.
 Max code uses the original ground truth ("label") and prediction values and transforms them as follows n evaluation_with_loc.convert_labels_and_predictions().
 The purpose is to compute the confusion matrix. The transformations described below are as in code, but their interpretation is OURs (=> Check with Max).
 * "_new_prediction_": derived from _prediction_:
-    * 0: pred == hogID. => Prediction indicates that the PHOG-computed value should be used as a prediction. It does not say that the result is OK (or does it?).
+    * 0: pred == hogID. => Prediction indicates that the PHOG-computed value should be used as a prediction. It does not say that the result is OK.
     * 1: pred == unkID. => Ext. network returned that it cannot predict (does this happen?)
     * 2: pred == label. => Prediction was done by the RNN or pointer network, and it is correct (ground truth and prediction are the same).
     * 3: otherwise. => Most likely: the prediction was done by the RNN or pointer network, and failed.
@@ -111,6 +111,16 @@ The purpose is to compute the confusion matrix. The transformations described be
     * 0: pred == hogID. => The PHOG prediction is correct and should be used. 
     * 1: pred == unkID. => RNN/pointer net cannot predict, and PHOG failed to predict correctly (true?)
     * 2: pred == label. => Prediction can be done by the RNN or pointer network, the value of "_label_" indicates the actual ground truth.
+
+##### Note on the confusion matrix used by Max
+Correct PHOG prediction is counted by Max only if _new_prediction_ == _new_label_ == hogID.
+However, we saw in data (row 37) that the original label was in attn-window 
+(so _new_label_ == 2), and the original prediction was == hog_id. (so _new_prediction_ == hogID).
+Consequently, in the confusion matrix this is counted as error.
+At the same time, from node_extra_info we know that the phog prediction was ok (phog_ok == 1), 
+so this prediction could have been used.
+=> In our analysis we can set phog_ok = True only if prediction = truth = hogID, to be consistent
+with his results.
 
 ### Information on step 3: code result_log_analysis_refactored.py
 We describe here the concrete values and meaning of the ground truth values as assumed in the code "result_log_analysis_refactored.py".
