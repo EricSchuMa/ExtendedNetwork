@@ -85,9 +85,10 @@ class EncodingConstants:
 
 
 class Stats:
-    num_all_nodes = 'abs05_count_all_nodes'
-    count_value_nodes = 'abs10_count_nodes_with_value'
-    ratio_value_nodes = 'rel10_ratio_of_nodes_with_value'
+    num_all_nodes = 'd05abs_count_all_nodes'
+    count_value_nodes = 'd07abs_count_nodes_with_value'
+    ratio_value_nodes = 'd10rel_ratio_of_nodes_with_value'
+    total_accuracy = "total_accuracy"
 
     rnn_able_to_predict = 'p05_rnn_could'
     attn_able_to_predict = 'p06_attn_could'
@@ -150,6 +151,7 @@ def stats_on_value_and_all_nodes(data, encodingConst: EncodingConstants):
     # Count data rows for which truth-value is not empty_idx (including unk (unknown), which must be value node)
     result[Stats.count_value_nodes] = data[data.truth != encodingConst.empty_idx].shape[0]
     result[Stats.ratio_value_nodes] = result[Stats.count_value_nodes] / nrows
+    result[Stats.total_accuracy] = data[data.is_ok == 1].shape[0] / nrows
 
     return result
 
@@ -248,6 +250,7 @@ def compare_accuracy(data, encodingConst: EncodingConstants, analyzed_result_log
     used_and_correct_together_ratio = calculate_used_and_correct_together_ratio(data, encodingConst)
     result.update(used_and_correct_together_ratio)
 
+
     # Predictions and selector decisions
     # result['p10e_final_ok'] = (data[data.is_ok == 1]).shape[0] / data.shape[0]
     # result['p10_final_ok'] = (data[data.is_ok == 1]).shape[0] / nrows
@@ -331,8 +334,8 @@ def main(merged_data_filename, result_log_filename, nodes_extra_info_filename,
     data = data[delete_eof_truth]
     data = data[delete_eof_prediction]
     print("Number of all nodes without padding = ", len(data))
-    print_ratios_for_groups(data, ['is_ok', 'pred_type'], "Percentage of prediction types")
-    print_ratios_for_groups(data, ['pred_type', 'is_ok'], "Percentage of prediction accuracies")
+    # print_ratios_for_groups(data, ['is_ok', 'pred_type'], "Percentage of prediction types")
+    # print_ratios_for_groups(data, ['pred_type', 'is_ok'], "Percentage of prediction accuracies")
     # print_ratios_for_groups(data, ['pred_type', 'truth_type'], "Percentage of category combinations")
     # print_ratios_for_groups(data, ['pred_type', 'truth_type', 'is_ok'], "Percentage of category combinations by accuracy")
 

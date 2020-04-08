@@ -3,8 +3,9 @@
 ## Possible options
 
 ### Data properties
-+ (d05) number of all nodes
-+ (d10) ratio "nodes-with-value" to all nodes 
++ (d05abs) number of all nodes
++ (d07abs) number of nodes_with_value
++ (d10rel) ratio "nodes-with-value" to all nodes 
 #### Principal power
 + How many times: 
   + (p05) RNN could have predicted? (i.e. #in_dict / #all)
